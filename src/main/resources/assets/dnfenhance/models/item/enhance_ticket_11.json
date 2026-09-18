@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "dnfenhance:item/enhance_ticket_11"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/orientable",
+  "textures": {
+    "top": "dnfenhance:block/enhancement_furnace_top",
+    "front": "dnfenhance:block/enhancement_furnace_front",
+    "side": "dnfenhance:block/enhancement_furnace_side"
+  }
+}
