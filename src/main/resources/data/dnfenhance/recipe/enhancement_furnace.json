@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "SIS",
+    "IAI",
+    "SFS"
+  ],
+  "key": {
+    "S": { "item": "minecraft:stone" },
+    "I": { "item": "minecraft:iron_ingot" },
+    "A": { "item": "minecraft:anvil" },
+    "F": { "item": "minecraft:furnace" }
+  },
+  "result": {
+    "count": 1,
+    "id": "dnfenhance:enhancement_furnace"
+  }
+}
