@@ -5,33 +5,51 @@ import com.xulai.dnfenhance.enhance.EnhanceLogic;
 import com.xulai.dnfenhance.menu.EnhancementMenu;
 import com.xulai.dnfenhance.net.AutoEnhancePayload;
 import com.xulai.dnfenhance.net.EnhanceRequestPayload;
-import com.xulai.dnfenhance.net.ModNetworking;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class EnhancementScreen extends AbstractContainerScreen<EnhancementMenu> {
-    private static final ResourceLocation TEXTURE =
-            new ResourceLocation(DnfEnhanceMod.MODID, "textures/gui/enhancement_furnace.png");
+    private static final Identifier TEXTURE =
+            Identifier.fromNamespaceAndPath(DnfEnhanceMod.MODID, "textures/gui/enhancement_furnace.png");
 
     private static final int INFO_X = 10;
     private static final int PANEL_TEXT_TOP = 79;
     private static final int PANEL_TEXT_RIGHT = 167;
+
     private static final int PANEL_TEXT_BOTTOM = 134;
     private static final int FONT_LINE_H = 9;
     private static final int PANEL_TEXT_HEIGHT = PANEL_TEXT_BOTTOM - PANEL_TEXT_TOP + 1;
+
     private static final float COMPACT_SCALE = 0.75f;
+
+    private static final int COLOR_TITLE = 0xFF404040;
+    private static final int COLOR_HINT = 0xFF8B8B8B;
+    private static final int COLOR_NORMAL = 0xFF404040;
+    private static final int COLOR_GOLD = 0xFFB8860B;
+    private static final int COLOR_GOOD = 0xFF228B22;
+    private static final int COLOR_BAD = 0xFFB03030;
+    private static final int COLOR_COPPER = 0xFFB87333;
+    private static final int COLOR_MUTED = 0xFF707070;
+    private static final int COLOR_TEAL = 0xFF1B7F8F;
+    private static final int COLOR_KAI_LI = 0xFF8B2FC9;
+    private static final int COLOR_KAI_VALUE = 0xFFC0392B;
 
     private Button enhanceButton;
     private Button autoDecreaseButton;
@@ -40,9 +58,7 @@ public class EnhancementScreen extends AbstractContainerScreen<EnhancementMenu> 
     private EditBox autoTargetBox;
 
     public EnhancementScreen(EnhancementMenu menu, Inventory playerInventory, Component title) {
-        super(menu, playerInventory, title);
-        this.imageWidth = 176;
-        this.imageHeight = 228;
+        super(menu, playerInventory, title, 176, 228);
         this.titleLabelY = 6;
         this.inventoryLabelY = 142;
     }
@@ -55,23 +71,21 @@ public class EnhancementScreen extends AbstractContainerScreen<EnhancementMenu> 
 
         this.enhanceButton = Button.builder(
                         Component.translatable("dnfenhance.gui.enhance"),
-                        button -> ModNetworking.CHANNEL.sendToServer(EnhanceRequestPayload.INSTANCE))
+                        button -> ClientPacketDistributor.sendToServer(EnhanceRequestPayload.INSTANCE))
                 .bounds(x + 61, y + 46, 54, 15)
                 .build();
         this.addRenderableWidget(this.enhanceButton);
 
         this.autoDecreaseButton = Button.builder(Component.literal("<"), b -> stepTarget(-1))
                 .bounds(x + 23, y + 62, 14, 15)
+                .tooltip(Tooltip.create(Component.translatable("dnfenhance.gui.auto_decrease")))
                 .build();
-        this.autoDecreaseButton.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
-                Component.translatable("dnfenhance.gui.auto_decrease")));
         this.addRenderableWidget(this.autoDecreaseButton);
 
         this.autoTargetBox = new EditBox(this.font, x + 41, y + 62, 34, 15,
                 Component.translatable("dnfenhance.gui.auto_target"));
         int persisted = this.menu.getAutoTarget();
         this.autoTargetBox.setValue(String.valueOf(persisted > 0 ? persisted : defaultAutoTarget()));
-        this.autoTargetBox.setFilter(s -> s.chars().allMatch(Character::isDigit));
         this.autoTargetBox.setMaxLength(2);
         this.autoTargetBox.setHint(Component.literal("10"));
         this.autoTargetBox.setResponder(s -> clampTargetBox());
@@ -79,9 +93,8 @@ public class EnhancementScreen extends AbstractContainerScreen<EnhancementMenu> 
 
         this.autoIncreaseButton = Button.builder(Component.literal(">"), b -> stepTarget(1))
                 .bounds(x + 79, y + 62, 14, 15)
+                .tooltip(Tooltip.create(Component.translatable("dnfenhance.gui.auto_increase")))
                 .build();
-        this.autoIncreaseButton.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
-                Component.translatable("dnfenhance.gui.auto_increase")));
         this.addRenderableWidget(this.autoIncreaseButton);
 
         this.autoToggleButton = Button.builder(autoButtonLabel(), this::toggleAutoEnhance)
@@ -131,24 +144,29 @@ public class EnhancementScreen extends AbstractContainerScreen<EnhancementMenu> 
     private void toggleAutoEnhance(Button button) {
         int target = this.menu.getAutoTarget() > 0 ? 0 : parseTarget();
         this.autoTargetBox.setValue(String.valueOf(target > 0 ? target : defaultAutoTarget()));
-        ModNetworking.CHANNEL.sendToServer(new AutoEnhancePayload(target));
+        ClientPacketDistributor.sendToServer(new AutoEnhancePayload(target));
     }
 
     @Override
     public void containerTick() {
         super.containerTick();
+        this.enhanceButton.active = this.canAttempt();
         this.autoToggleButton.setMessage(autoButtonLabel());
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        this.enhanceButton.active = this.canAttempt();
-        super.render(graphics, mouseX, mouseY, partialTick);
-        this.renderTooltip(graphics, mouseX, mouseY);
-        this.autoTargetBox.render(graphics, mouseX, mouseY, partialTick);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
         if (this.autoToggleButton.isHovered()) {
-            graphics.renderComponentTooltip(this.font, autoToggleTooltip(), mouseX, mouseY);
+            graphics.setTooltipForNextFrame(this.font, autoToggleTooltip(), Optional.empty(), mouseX, mouseY);
         }
+    }
+
+    @Override
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractBackground(graphics, mouseX, mouseY, partialTick);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, this.leftPos, this.topPos, 0.0F, 0.0F,
+                this.imageWidth, this.imageHeight, this.imageWidth, this.imageHeight);
     }
 
     private List<Component> autoToggleTooltip() {
@@ -167,15 +185,15 @@ public class EnhancementScreen extends AbstractContainerScreen<EnhancementMenu> 
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    public boolean keyPressed(KeyEvent event) {
         if (this.autoTargetBox.isFocused()) {
-            if (keyCode == 256) {
+            if (event.isEscape()) {
                 this.autoTargetBox.setFocused(false);
                 return true;
             }
-            return this.autoTargetBox.keyPressed(keyCode, scanCode, modifiers);
+            return this.autoTargetBox.keyPressed(event);
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressed(event);
     }
 
     private boolean canAttempt() {
@@ -187,20 +205,14 @@ public class EnhancementScreen extends AbstractContainerScreen<EnhancementMenu> 
     }
 
     @Override
-    protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
-        graphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0,
-                this.imageWidth, this.imageHeight, this.imageWidth, this.imageHeight);
-    }
-
-    @Override
-    protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 0x404040, false);
+    protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        graphics.text(this.font, this.title, this.titleLabelX, this.titleLabelY, COLOR_TITLE, false);
 
         ItemStack equip = this.menu.getEquipStack();
         if (!EnhanceLogic.canEnhance(equip)) {
             drawPanelLines(graphics, List.of(
-                    PanelLine.single(Component.translatable("dnfenhance.gui.hint_equip"), 0x8B8B8B),
-                    PanelLine.single(Component.translatable("dnfenhance.gui.hint_equip2"), 0x8B8B8B)));
+                    PanelLine.single(Component.translatable("dnfenhance.gui.hint_equip"), COLOR_HINT),
+                    PanelLine.single(Component.translatable("dnfenhance.gui.hint_equip2"), COLOR_HINT)));
             return;
         }
 
@@ -208,8 +220,8 @@ public class EnhancementScreen extends AbstractContainerScreen<EnhancementMenu> 
         int target = current + 1;
         if (target > EnhanceLogic.maxLevel()) {
             drawPanelLines(graphics, List.of(
-                    PanelLine.single(Component.translatable("dnfenhance.gui.level", current, current), 0x404040),
-                    PanelLine.single(Component.translatable("dnfenhance.gui.max_level"), 0xB8860B)));
+                    PanelLine.single(Component.translatable("dnfenhance.gui.level", current, current), COLOR_NORMAL),
+                    PanelLine.single(Component.translatable("dnfenhance.gui.max_level"), COLOR_GOLD)));
             return;
         }
 
@@ -222,36 +234,38 @@ public class EnhancementScreen extends AbstractContainerScreen<EnhancementMenu> 
             rate += com.xulai.dnfenhance.enhance.EnhanceConfig.LUCK_BONUS.get();
         }
         rate = Mth.clamp(rate, 0.0, 1.0);
-
-        var nearby = com.xulai.dnfenhance.enhance.KaiLiPigHelper
-                .scanAura(this.menu.getFurnace().getLevel(), this.menu.getFurnacePos());
-        var aura = EnhanceLogic.aura(nearby.variant(), nearby.count());
+        int auraCount = this.menu.getAuraCount();
+        int variantOrdinal = this.menu.getAuraVariant();
+        com.xulai.dnfenhance.enhance.KaiLiPigHelper.KaiLiVariant nearbyVariant = variantOrdinal >= 0
+                ? com.xulai.dnfenhance.enhance.KaiLiPigHelper.KaiLiVariant.values()[variantOrdinal]
+                : null;
+        var aura = EnhanceLogic.aura(nearbyVariant, auraCount);
         rate = aura.mustFail() ? 0.0 : EnhanceLogic.applyAura(rate, aura.count());
         int cost = EnhanceLogic.carbonCost(target);
         int owned = this.menu.getCarbonStack().getCount();
 
         Component levelText = Component.translatable("dnfenhance.gui.level", current, target);
-        int rateColor = rate >= 0.7 ? 0x228B22 : rate >= 0.4 ? 0xB8860B : 0xB03030;
+        int rateColor = rate >= 0.7 ? COLOR_GOOD : rate >= 0.4 ? COLOR_GOLD : COLOR_BAD;
         List<PanelLine> lines = new ArrayList<>();
 
         lines.add(new PanelLine(List.of(
-                new PanelSpan(levelText, 0, 0x404040),
+                new PanelSpan(levelText, 0, COLOR_NORMAL),
                 new PanelSpan(Component.translatable("dnfenhance.gui.rate", Math.round(rate * 100)),
                         this.font.width(levelText) + 4, rateColor))));
 
         lines.add(PanelLine.single(
                 Component.translatable(advanced ? "dnfenhance.gui.cost_advanced" : "dnfenhance.gui.cost", cost, owned),
-                owned >= cost ? 0x404040 : 0xB03030));
+                owned >= cost ? COLOR_NORMAL : COLOR_BAD));
 
         EnhanceLogic.Penalty penalty = EnhanceLogic.penaltyType(target);
         switch (penalty) {
             case DESTROY -> lines.add(PanelLine.single(
-                    Component.translatable("dnfenhance.gui.penalty_destroy"), 0xB03030));
+                    Component.translatable("dnfenhance.gui.penalty_destroy"), COLOR_BAD));
             case DOWNGRADE -> lines.add(PanelLine.single(
                     Component.translatable("dnfenhance.gui.penalty_down", EnhanceLogic.penaltyDowngrade(target)),
-                    0xB87333));
+                    COLOR_COPPER));
             default -> lines.add(PanelLine.single(
-                    Component.translatable("dnfenhance.gui.penalty_none"), 0x707070));
+                    Component.translatable("dnfenhance.gui.penalty_none"), COLOR_MUTED));
         }
 
         if (penalty == EnhanceLogic.Penalty.DESTROY) {
@@ -259,23 +273,23 @@ public class EnhancementScreen extends AbstractContainerScreen<EnhancementMenu> 
                     Component.translatable(hasProtection
                             ? "dnfenhance.gui.protect_ready"
                             : "dnfenhance.gui.protect_warn"),
-                    hasProtection ? 0x1B7F8F : 0xB03030));
+                    hasProtection ? COLOR_TEAL : COLOR_BAD));
         }
 
         if (aura.present()) {
             if (aura.variant() == com.xulai.dnfenhance.enhance.KaiLiPigHelper.KaiLiVariant.MASTER) {
                 lines.add(PanelLine.single(
-                        Component.translatable("dnfenhance.gui.kai_li_master"), 0xB8860B));
+                        Component.translatable("dnfenhance.gui.kai_li_master"), COLOR_GOLD));
             } else if (aura.variant() == com.xulai.dnfenhance.enhance.KaiLiPigHelper.KaiLiVariant.BLACKENED) {
                 lines.add(PanelLine.single(
-                        Component.translatable("dnfenhance.gui.kai_li_blackened"), 0xB03030));
+                        Component.translatable("dnfenhance.gui.kai_li_blackened"), COLOR_BAD));
             } else {
                 int dropPercent = (int) Math.round((1.0 - EnhanceLogic.auraMultiplier(aura.count())) * 100);
                 Component kaiLead = Component.translatable("dnfenhance.gui.kai_li_label", aura.count());
                 Component kaiValue = Component.translatable("dnfenhance.gui.kai_li_warn", dropPercent);
                 lines.add(new PanelLine(List.of(
-                        new PanelSpan(kaiLead, 0, 0x8B2FC9),
-                        new PanelSpan(kaiValue, this.font.width(kaiLead), 0xC0392B))));
+                        new PanelSpan(kaiLead, 0, 0xFF8B2FC9),
+                        new PanelSpan(kaiValue, this.font.width(kaiLead), 0xFFC0392B))));
             }
         }
 
@@ -290,7 +304,7 @@ public class EnhancementScreen extends AbstractContainerScreen<EnhancementMenu> 
         }
     }
 
-    private void drawPanelLines(GuiGraphics graphics, List<PanelLine> lines) {
+    private void drawPanelLines(GuiGraphicsExtractor graphics, List<PanelLine> lines) {
         if (lines.isEmpty()) {
             return;
         }
@@ -310,7 +324,7 @@ public class EnhancementScreen extends AbstractContainerScreen<EnhancementMenu> 
         }
     }
 
-    private void drawPanelLine(GuiGraphics graphics, PanelLine line, int py, float scale) {
+    private void drawPanelLine(GuiGraphicsExtractor graphics, PanelLine line, int py, float scale) {
         int rowRight = INFO_X;
         for (PanelSpan span : line.spans()) {
             rowRight = Math.max(rowRight, INFO_X + span.x() + this.font.width(span.text()));
@@ -324,24 +338,24 @@ public class EnhancementScreen extends AbstractContainerScreen<EnhancementMenu> 
 
         if (total >= 0.999f) {
             for (PanelSpan span : line.spans()) {
-                graphics.drawString(this.font, span.text(), INFO_X + span.x(), py, span.color(), false);
+                graphics.text(this.font, span.text(), INFO_X + span.x(), py, span.color(), false);
             }
             return;
         }
         var pose = graphics.pose();
-        pose.pushPose();
-        pose.translate(Math.round(INFO_X), py, 0);
-        pose.scale(total, total, 1f);
+        pose.pushMatrix();
+        pose.translate((float) INFO_X, (float) py);
+        pose.scale(total, total);
         for (PanelSpan span : line.spans()) {
-            graphics.drawString(this.font, span.text(), span.x(), 0, span.color(), false);
+            graphics.text(this.font, span.text(), span.x(), 0, span.color(), false);
         }
-        pose.popPose();
+        pose.popMatrix();
     }
 
     private float compactScale() {
         int guiScale = 1;
         if (this.minecraft != null) {
-            guiScale = (int) Math.round(this.minecraft.getWindow().getGuiScale());
+            guiScale = this.minecraft.getWindow().getGuiScale();
         }
         if (guiScale <= 0) {
             return COMPACT_SCALE;

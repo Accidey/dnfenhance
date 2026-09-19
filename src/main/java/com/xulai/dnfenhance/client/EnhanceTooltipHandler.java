@@ -4,22 +4,23 @@ import com.mojang.datafixers.util.Either;
 import com.xulai.dnfenhance.DnfEnhanceMod;
 import com.xulai.dnfenhance.enhance.EnhanceLogic;
 import net.minecraft.ChatFormatting;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ProjectileWeaponItem;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.event.entity.player.ItemTooltipEvent;
-import net.minecraftforge.client.event.RenderTooltipEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.RenderTooltipEvent;
+import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 
 import java.util.List;
 
-@Mod.EventBusSubscriber(modid = DnfEnhanceMod.MODID, value = Dist.CLIENT)
+@EventBusSubscriber(modid = DnfEnhanceMod.MODID, value = Dist.CLIENT)
 public final class EnhanceTooltipHandler {
 
     private EnhanceTooltipHandler() {}
@@ -45,7 +46,7 @@ public final class EnhanceTooltipHandler {
         if (level <= 0) return;
 
         boolean ticket = EnhanceLogic.isEnhanceTicket(stack);
-        if (!ticket && !stack.hasCustomHoverName()) return;
+        if (!ticket && stack.get(DataComponents.CUSTOM_NAME) == null) return;
 
         List<Either<FormattedText, TooltipComponent>> elements = event.getTooltipElements();
         if (elements.isEmpty()) return;

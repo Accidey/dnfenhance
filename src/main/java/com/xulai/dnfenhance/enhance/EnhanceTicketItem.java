@@ -4,18 +4,19 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 
-import javax.annotation.Nullable;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class EnhanceTicketItem extends Item {
     private final int ticketLevel;
@@ -36,29 +37,29 @@ public class EnhanceTicketItem extends Item {
     }
 
     @Override
-    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+    public InteractionResult use(Level level, Player player, InteractionHand hand) {
         ItemStack ticket = player.getItemInHand(hand);
         InteractionHand otherHand = hand == InteractionHand.MAIN_HAND ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
         ItemStack equip = player.getItemInHand(otherHand);
 
         if (!EnhanceLogic.canEnhance(equip)) {
-            if (!level.isClientSide) {
-                player.displayClientMessage(Component.translatable("dnfenhance.msg.ticket_no_equip")
+            if (!level.isClientSide()) {
+                ((ServerPlayer) player).sendSystemMessage(Component.translatable("dnfenhance.msg.ticket_no_equip")
                         .withStyle(ChatFormatting.YELLOW), true);
             }
-            return InteractionResultHolder.fail(ticket);
+            return InteractionResult.FAIL;
         }
         if (EnhanceLogic.getLevel(equip) >= this.ticketLevel) {
-            if (!level.isClientSide) {
-                player.displayClientMessage(Component.translatable("dnfenhance.msg.ticket_too_low")
+            if (!level.isClientSide()) {
+                ((ServerPlayer) player).sendSystemMessage(Component.translatable("dnfenhance.msg.ticket_too_low")
                         .withStyle(ChatFormatting.YELLOW), true);
             }
-            return InteractionResultHolder.fail(ticket);
+            return InteractionResult.FAIL;
         }
 
-        player.getCooldowns().addCooldown(this, 10);
+        player.getCooldowns().addCooldown(ticket, 10);
 
-        if (!level.isClientSide) {
+        if (!level.isClientSide()) {
             ticket.shrink(1);
 
             KaiLiPigHelper.NearbyAura nearby = KaiLiPigHelper.scanAura(level, player.blockPosition());
@@ -81,7 +82,7 @@ public class EnhanceTicketItem extends Item {
                     serverLevel.sendParticles(ParticleTypes.END_ROD,
                             player.getX(), player.getY() + 1.0, player.getZ(), 12, 0.3, 0.5, 0.3, 0.05);
                 }
-                player.displayClientMessage(Component.translatable("dnfenhance.msg.ticket_success", this.ticketLevel)
+                ((ServerPlayer) player).sendSystemMessage(Component.translatable("dnfenhance.msg.ticket_success", this.ticketLevel)
                         .withStyle(ChatFormatting.GREEN), false);
             } else {
                 level.playSound(null, player.getX(), player.getY(), player.getZ(),
@@ -90,27 +91,28 @@ public class EnhanceTicketItem extends Item {
                     serverLevel.sendParticles(ParticleTypes.SMOKE,
                             player.getX(), player.getY() + 1.0, player.getZ(), 15, 0.3, 0.4, 0.3, 0.02);
                 }
-                player.displayClientMessage(Component.translatable("dnfenhance.msg.ticket_failed")
+                ((ServerPlayer) player).sendSystemMessage(Component.translatable("dnfenhance.msg.ticket_failed")
                         .withStyle(ChatFormatting.RED), false);
             }
         }
-        return InteractionResultHolder.sidedSuccess(ticket, level.isClientSide);
+        return level.isClientSide() ? InteractionResult.SUCCESS : InteractionResult.SUCCESS_SERVER;
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, @Nullable Level level,
-            List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, TooltipContext context,
+            net.minecraft.world.item.component.TooltipDisplay display,
+            Consumer<Component> tooltip, TooltipFlag flag) {
         String rate;
         try {
             rate = Math.round(EnhanceLogic.ticketSuccessRate(this.ticketLevel) * 100.0) + "%";
         } catch (IllegalStateException ex) {
             rate = "100%";
         }
-        tooltip.add(Component.translatable("dnfenhance.item.enhance_ticket.tooltip", rate, this.ticketLevel)
+        tooltip.accept(Component.translatable("dnfenhance.item.enhance_ticket.tooltip", rate, this.ticketLevel)
                 .withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.translatable("dnfenhance.item.enhance_ticket.usage")
+        tooltip.accept(Component.translatable("dnfenhance.item.enhance_ticket.usage")
                 .withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.translatable("dnfenhance.item.enhance_ticket.upgrade")
+        tooltip.accept(Component.translatable("dnfenhance.item.enhance_ticket.upgrade")
                 .withStyle(ChatFormatting.GRAY));
     }
 }

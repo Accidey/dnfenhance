@@ -7,29 +7,24 @@ import com.xulai.dnfenhance.enhance.EnhanceLogic;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.core.Holder;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.event.RegisterCommandsEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.world.item.component.ItemAttributeModifiers;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 
-@Mod.EventBusSubscriber(modid = DnfEnhanceMod.MODID)
+@EventBusSubscriber(modid = DnfEnhanceMod.MODID)
 public final class EnhanceCommands {
     private EnhanceCommands() {}
 
@@ -37,7 +32,7 @@ public final class EnhanceCommands {
     public static void onRegisterCommands(RegisterCommandsEvent event) {
         event.getDispatcher().register(Commands.literal("dnfenhance")
                 .then(Commands.literal("enhance")
-                        .requires(source -> source.hasPermission(2))
+                        .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                         .then(Commands.argument("level", IntegerArgumentType.integer(0, 99))
                                 .executes(ctx -> enhanceHeld(
                                         ctx.getSource(), IntegerArgumentType.getInteger(ctx, "level")))))
@@ -90,35 +85,27 @@ public final class EnhanceCommands {
         player.sendSystemMessage(Component.literal("—— " + stack.getHoverName().getString()
                 + " 的属性修饰符（点击任意一行复制其 ID）——").withStyle(ChatFormatting.GOLD));
 
-        Set<UUID> seen = new HashSet<>();
-        List<Map.Entry<Attribute, AttributeModifier>> found = new ArrayList<>();
-        for (EquipmentSlot slot : EquipmentSlot.values()) {
-            for (var entry : stack.getAttributeModifiers(slot).entries()) {
-                if (seen.add(entry.getValue().getId())) {
-                    found.add(Map.entry(entry.getKey(), entry.getValue()));
-                }
-            }
-        }
-
-        if (found.isEmpty()) {
+        List<ItemAttributeModifiers.Entry> entries = stack.getAttributeModifiers().modifiers();
+        if (entries.isEmpty()) {
             player.sendSystemMessage(Component.literal("该物品没有任何属性修饰符")
                     .withStyle(ChatFormatting.GRAY));
             return Command.SINGLE_SUCCESS;
         }
 
-        for (Map.Entry<Attribute, AttributeModifier> entry : found) {
-            Attribute attribute = entry.getKey();
-            AttributeModifier modifier = entry.getValue();
-            var location = ForgeRegistries.ATTRIBUTES.getKey(attribute);
-            String id = location == null ? "unknown" : location.toString();
-            String displayName = Component.translatable(attribute.getDescriptionId()).getString();
+        for (ItemAttributeModifiers.Entry entry : entries) {
+            Holder<Attribute> attribute = entry.attribute();
+            AttributeModifier modifier = entry.modifier();
+            String id = attribute.unwrapKey()
+                    .map(key -> key.identifier().toString())
+                    .orElse("unknown");
+            String displayName = Component.translatable(attribute.value().getDescriptionId()).getString();
 
             String state;
             ChatFormatting color;
             if (EnhanceLogic.isAttributeBlacklisted(attribute)) {
                 state = "[已禁用]";
                 color = ChatFormatting.DARK_GRAY;
-            } else if (modifier.getAmount() <= 0.0) {
+            } else if (modifier.amount() <= 0.0) {
                 state = "[非正值·不强化]";
                 color = ChatFormatting.GRAY;
             } else {
@@ -128,13 +115,13 @@ public final class EnhanceCommands {
 
             String text = amount(modifier) + " " + displayName
                     + "  § " + id
-                    + "  § " + modifier.getOperation().name()
+                    + "  § " + modifier.operation().name()
                     + "  " + state;
 
             player.sendSystemMessage(Component.literal(text).withStyle(Style.EMPTY
                     .withColor(color)
-                    .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, id))
-                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                    .withClickEvent(new ClickEvent.CopyToClipboard(id))
+                    .withHoverEvent(new HoverEvent.ShowText(
                             Component.literal("点击复制 " + id)))));
             player.sendSystemMessage(Component.empty());
         }
@@ -142,9 +129,9 @@ public final class EnhanceCommands {
     }
 
     private static String amount(AttributeModifier modifier) {
-        double value = modifier.getAmount();
-        if (modifier.getOperation() == AttributeModifier.Operation.MULTIPLY_BASE
-                || modifier.getOperation() == AttributeModifier.Operation.MULTIPLY_TOTAL) {
+        double value = modifier.amount();
+        if (modifier.operation() == AttributeModifier.Operation.ADD_MULTIPLIED_BASE
+                || modifier.operation() == AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL) {
             return trim(value * 100.0) + "%";
         }
         return trim(value);

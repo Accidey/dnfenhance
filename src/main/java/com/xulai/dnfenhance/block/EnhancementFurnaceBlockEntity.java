@@ -3,12 +3,16 @@ package com.xulai.dnfenhance.block;
 import com.xulai.dnfenhance.enhance.EnhanceConfig;
 import com.xulai.dnfenhance.enhance.EnhanceLogic;
 import com.xulai.dnfenhance.enhance.KaiLiPigHelper;
+import com.xulai.dnfenhance.registry.ModItems;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
@@ -40,13 +44,18 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
     private int litTimer = 0;
     private UUID autoOwner = null;
     private double kaiLiLuck = 0.0;
+    private int auraCount = 0;
+    private int auraVariant = -1;
 
     public EnhancementFurnaceBlockEntity(BlockPos pos, BlockState state) {
         super(com.xulai.dnfenhance.registry.ModBlockEntities.ENHANCEMENT_FURNACE.get(), pos, state);
     }
 
     public static void serverTick(Level level, BlockPos pos, BlockState state, EnhancementFurnaceBlockEntity be) {
-        if (level.isClientSide) return;
+        if (level.isClientSide()) return;
+        KaiLiPigHelper.NearbyAura aura = KaiLiPigHelper.scanAura(level, pos);
+        be.auraCount = aura.count();
+        be.auraVariant = aura.variant() == null ? -1 : aura.variant().ordinal();
         boolean powered = level.hasNeighborSignal(pos);
         if (be.autoTarget > 0 && powered) {
             be.litTimer = 40;
@@ -124,7 +133,7 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
         if (target > EnhanceLogic.maxLevel()) {
             this.autoTarget = 0;
             if (player != null) {
-                player.displayClientMessage(Component.translatable("dnfenhance.msg.max_level"), true);
+                player.sendSystemMessage(Component.translatable("dnfenhance.msg.max_level"), true);
             }
             return;
         }
@@ -133,7 +142,7 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
         int cost = EnhanceLogic.carbonCost(target);
         if (!EnhanceLogic.isCarbon(carbon) || carbon.getCount() < cost) {
             if (player != null) {
-                player.displayClientMessage(Component.translatable("dnfenhance.msg.not_enough_carbon", cost), true);
+                player.sendSystemMessage(Component.translatable("dnfenhance.msg.not_enough_carbon", cost), true);
             }
             return;
         }
@@ -158,7 +167,7 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
 
         carbon.shrink(cost);
 
-        boolean success = (player != null ? player.getRandom() : level.random).nextDouble() < rate;
+        boolean success = (player != null ? player.getRandom() : level.getRandom()).nextDouble() < rate;
         if (player != null) {
             this.autoCompleted = false;
         }
@@ -179,22 +188,22 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
                         pos.getX() + 0.5, pos.getY() + 1.2, pos.getZ() + 0.5, 12, 0.3, 0.5, 0.3, 0.05);
             }
             if (player != null) {
-                player.displayClientMessage(
+                player.sendSystemMessage(
                         Component.translatable("dnfenhance.msg.success", target).withStyle(ChatFormatting.GREEN), false);
             }
         } else if (aura.resetToZero()) {
-            EnhanceLogic.applyLevel(equip, 0);
-            this.autoTarget = 0;
-            level.playSound(null, pos, SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 1.0f, 0.6f);
-            if (level instanceof ServerLevel serverLevel) {
-                serverLevel.sendParticles(ParticleTypes.SMOKE,
-                        pos.getX() + 0.5, pos.getY() + 1.1, pos.getZ() + 0.5, 15, 0.3, 0.4, 0.3, 0.02);
-            }
-            if (player != null) {
-                player.displayClientMessage(
-                        Component.translatable("dnfenhance.msg.fail_reset").withStyle(ChatFormatting.DARK_RED), false);
-            }
-        } else {
+                EnhanceLogic.applyLevel(equip, 0);
+                this.autoTarget = 0;
+                level.playSound(null, pos, SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 1.0f, 0.6f);
+                if (level instanceof ServerLevel serverLevel) {
+                    serverLevel.sendParticles(ParticleTypes.SMOKE,
+                            pos.getX() + 0.5, pos.getY() + 1.1, pos.getZ() + 0.5, 15, 0.3, 0.4, 0.3, 0.02);
+                }
+                if (player != null) {
+                    player.sendSystemMessage(
+                            Component.translatable("dnfenhance.msg.fail_reset").withStyle(ChatFormatting.DARK_RED), false);
+                }
+            } else {
             switch (EnhanceLogic.penaltyType(target)) {
                 case DESTROY -> {
                     ItemStack protect = this.getItem(SLOT_PROTECT);
@@ -210,20 +219,20 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
                                     pos.getX() + 0.5, pos.getY() + 1.2, pos.getZ() + 0.5, 10, 0.4, 0.5, 0.4, 0.03);
                         }
                         if (player != null) {
-                            player.displayClientMessage(
+                            player.sendSystemMessage(
                                     Component.translatable("dnfenhance.msg.protected").withStyle(ChatFormatting.AQUA), false);
                         }
                     } else {
-                        this.setItem(SLOT_EQUIP, ItemStack.EMPTY);
+                        this.setItem(SLOT_EQUIP, net.minecraft.world.item.ItemStack.EMPTY);
                         this.autoTarget = 0;
-                        level.playSound(null, pos, SoundEvents.ITEM_BREAK, SoundSource.PLAYERS, 1.0f, 0.8f);
+                        level.playSound(null, pos, SoundEvents.ITEM_BREAK.value(), SoundSource.PLAYERS, 1.0f, 0.8f);
                         level.playSound(null, pos, SoundEvents.ANVIL_BREAK, SoundSource.PLAYERS, 1.0f, 0.9f);
                         if (level instanceof ServerLevel serverLevel) {
                             serverLevel.sendParticles(ParticleTypes.LARGE_SMOKE,
                                     pos.getX() + 0.5, pos.getY() + 1.1, pos.getZ() + 0.5, 30, 0.4, 0.5, 0.4, 0.02);
                         }
                         if (player != null) {
-                            player.displayClientMessage(
+                            player.sendSystemMessage(
                                     Component.translatable("dnfenhance.msg.destroy").withStyle(ChatFormatting.RED), false);
                         }
                     }
@@ -237,14 +246,14 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
                                 pos.getX() + 0.5, pos.getY() + 1.1, pos.getZ() + 0.5, 15, 0.3, 0.4, 0.3, 0.02);
                     }
                     if (player != null) {
-                        player.displayClientMessage(
+                        player.sendSystemMessage(
                                 Component.translatable("dnfenhance.msg.fail_down", newLevel).withStyle(ChatFormatting.RED), false);
                     }
                 }
                 default -> {
                     level.playSound(null, pos, SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 0.6f, 1.2f);
                     if (player != null) {
-                        player.displayClientMessage(
+                        player.sendSystemMessage(
                                 Component.translatable("dnfenhance.msg.fail_safe").withStyle(ChatFormatting.YELLOW), false);
                     }
                 }
@@ -260,7 +269,7 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
         if (KaiLiPigHelper.atCapacity(serverLevel, pos)) return false;
 
         double luck = Math.max(0.0, Math.min(1.0, this.kaiLiLuck));
-        double roll = serverLevel.random.nextDouble();
+        double roll = serverLevel.getRandom().nextDouble();
         KaiLiPigHelper.KaiLiVariant variant;
         if (roll < EnhanceConfig.PIG_MASTER_CHANCE.get() + luck) {
             variant = KaiLiPigHelper.KaiLiVariant.MASTER;
@@ -276,7 +285,7 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
         if (pig == null) return false;
         this.kaiLiLuck = 0.0;
 
-        serverLevel.playSound(null, pos, SoundEvents.PIG_AMBIENT, SoundSource.PLAYERS, 1.0f, 0.7f);
+        serverLevel.playSound(null, pos, SoundEvents.PIG_AMBIENT_BABY.value(), SoundSource.PLAYERS, 1.0f, 0.7f);
         serverLevel.sendParticles(ParticleTypes.CRIT,
                 pig.getX(), pig.getY() + 0.6, pig.getZ(), 25, 0.4, 0.4, 0.4, 0.08);
         if (variant == KaiLiPigHelper.KaiLiVariant.BLACKENED
@@ -286,10 +295,10 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
                     ? "dnfenhance.msg.kai_li_blackened_summoned"
                     : "dnfenhance.msg.kai_li_master_summoned").withStyle(ChatFormatting.LIGHT_PURPLE);
             for (ServerPlayer recipient : serverLevel.players()) {
-                recipient.displayClientMessage(broadcast, false);
+                recipient.sendSystemMessage(broadcast, false);
             }
         } else if (player != null) {
-            player.displayClientMessage(Component.translatable("dnfenhance.msg.kai_li_summoned")
+            player.sendSystemMessage(Component.translatable("dnfenhance.msg.kai_li_summoned")
                     .withStyle(ChatFormatting.LIGHT_PURPLE), false);
         }
         return true;
@@ -308,6 +317,14 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
 
     public int getAutoTarget() {
         return this.autoTarget;
+    }
+
+    public int getAuraCount() {
+        return this.auraCount;
+    }
+
+    public int getAuraVariant() {
+        return this.auraVariant;
     }
 
     public void setAutoTarget(int target) {
@@ -338,11 +355,6 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
             if (!stack.isEmpty()) return false;
         }
         return true;
-    }
-
-    @Override
-    public void clearContent() {
-        this.items.clear();
     }
 
     @Override
@@ -379,7 +391,7 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
     @Override
     public void setChanged() {
         super.setChanged();
-        if (this.level != null && !this.level.isClientSide) {
+        if (this.level != null && !this.level.isClientSide()) {
             this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), 2);
         }
     }
@@ -444,26 +456,29 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
     }
 
     @Override
-    public void load(CompoundTag tag) {
-        super.load(tag);
-        this.items = NonNullList.withSize(this.getContainerSize(), ItemStack.EMPTY);
-        ContainerHelper.loadAllItems(tag, this.items);
-        this.autoTarget = tag.contains("AutoTarget") ? tag.getInt("AutoTarget") : 0;
-        this.autoCompleted = tag.getBoolean("AutoCompleted");
-        this.autoOwner = tag.hasUUID("AutoOwner") ? tag.getUUID("AutoOwner") : null;
-        this.kaiLiLuck = Math.max(0.0, Math.min(1.0, tag.getDouble("KaiLiLuck")));
+    protected void saveAdditional(ValueOutput output) {
+        super.saveAdditional(output);
+        ContainerHelper.saveAllItems(output, this.items);
+        output.putInt("AutoTarget", this.autoTarget);
+        output.putBoolean("AutoCompleted", this.autoCompleted);
+        if (this.autoOwner != null) {
+            output.putLong("AutoOwnerMost", this.autoOwner.getMostSignificantBits());
+            output.putLong("AutoOwnerLeast", this.autoOwner.getLeastSignificantBits());
+        }
+        output.putDouble("KaiLiLuck", this.kaiLiLuck);
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag) {
-        super.saveAdditional(tag);
-        ContainerHelper.saveAllItems(tag, this.items);
-        tag.putInt("AutoTarget", this.autoTarget);
-        tag.putBoolean("AutoCompleted", this.autoCompleted);
-        if (this.autoOwner != null) {
-            tag.putUUID("AutoOwner", this.autoOwner);
-        }
-        tag.putDouble("KaiLiLuck", this.kaiLiLuck);
+    protected void loadAdditional(ValueInput input) {
+        super.loadAdditional(input);
+        this.items = NonNullList.withSize(this.getContainerSize(), ItemStack.EMPTY);
+        ContainerHelper.loadAllItems(input, this.items);
+        this.autoTarget = input.getIntOr("AutoTarget", 0);
+        this.autoCompleted = input.getBooleanOr("AutoCompleted", false);
+        long ownerMost = input.getLongOr("AutoOwnerMost", 0L);
+        long ownerLeast = input.getLongOr("AutoOwnerLeast", 0L);
+        this.autoOwner = (ownerMost != 0L || ownerLeast != 0L) ? new UUID(ownerMost, ownerLeast) : null;
+        this.kaiLiLuck = Math.max(0.0, Math.min(1.0, input.getDoubleOr("KaiLiLuck", 0.0)));
     }
 
     @Override
@@ -471,8 +486,14 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
         return Component.translatable("container.dnfenhance.enhancement_furnace");
     }
 
-    public NonNullList<ItemStack> getItems() {
+    @Override
+    protected NonNullList<ItemStack> getItems() {
         return this.items;
+    }
+
+    @Override
+    protected void setItems(NonNullList<ItemStack> items) {
+        this.items = items;
     }
 
     @Override
@@ -487,7 +508,7 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
     }
 
     @Override
-    public CompoundTag getUpdateTag() {
-        return this.saveWithoutMetadata();
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        return this.saveWithoutMetadata(registries);
     }
 }

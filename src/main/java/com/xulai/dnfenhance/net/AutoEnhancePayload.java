@@ -1,23 +1,28 @@
 package com.xulai.dnfenhance.net;
 
+import com.xulai.dnfenhance.DnfEnhanceMod;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
 
-public final class AutoEnhancePayload {
-    private final int targetLevel;
+public record AutoEnhancePayload(int targetLevel) implements CustomPacketPayload {
+    public static final CustomPacketPayload.Type<AutoEnhancePayload> TYPE =
+            new CustomPacketPayload.Type<>(Identifier.fromNamespaceAndPath(DnfEnhanceMod.MODID, "auto_enhance"));
 
-    public AutoEnhancePayload(int targetLevel) {
-        this.targetLevel = targetLevel;
-    }
+    public static final StreamCodec<FriendlyByteBuf, AutoEnhancePayload> STREAM_CODEC =
+            StreamCodec.ofMember(AutoEnhancePayload::write, AutoEnhancePayload::read);
 
-    public int targetLevel() {
-        return this.targetLevel;
-    }
-
-    public static void encode(AutoEnhancePayload payload, FriendlyByteBuf buf) {
-        buf.writeVarInt(payload.targetLevel);
-    }
-
-    public static AutoEnhancePayload decode(FriendlyByteBuf buf) {
+    public static AutoEnhancePayload read(FriendlyByteBuf buf) {
         return new AutoEnhancePayload(buf.readVarInt());
+    }
+
+    public void write(FriendlyByteBuf buf) {
+        buf.writeVarInt(this.targetLevel);
+    }
+
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

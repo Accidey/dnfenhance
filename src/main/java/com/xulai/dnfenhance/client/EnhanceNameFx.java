@@ -6,7 +6,7 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.TextColor;
 
 public final class EnhanceNameFx {
-    private static final int[] RED_WAVE = {0xFFAAAA, 0xFF5555, 0xCC0000, 0xAA0000};
+    private static final int[] RED_WAVE = {0xFFFFAAAA, 0xFFFF5555, 0xFFCC0000, 0xFFAA0000};
 
     private static final long RED_STEP_MS = 250;
     private static final long RAINBOW_STEP_MS = 220;

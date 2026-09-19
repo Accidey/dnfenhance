@@ -2,46 +2,42 @@ package com.xulai.dnfenhance.enhance;
 
 import com.xulai.dnfenhance.DnfEnhanceMod;
 import com.xulai.dnfenhance.registry.ModItems;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.entity.MobSpawnType;
-import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.animal.pig.Pig;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraft.world.entity.animal.Pig;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.projectile.AbstractArrow;
-import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ProjectileWeaponItem;
+import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.item.enchantment.Enchantments;
-import net.minecraftforge.event.AnvilUpdateEvent;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.ItemAttributeModifierEvent;
-import net.minecraftforge.event.entity.EntityJoinLevelEvent;
-import net.minecraftforge.event.entity.living.LivingDeathEvent;
-import net.minecraftforge.event.entity.living.LivingHurtEvent;
-import net.minecraftforge.event.entity.living.MobSpawnEvent;
-import net.minecraftforge.event.level.ExplosionEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.ItemAttributeModifierEvent;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.entity.living.FinalizeSpawnEvent;
+import net.neoforged.neoforge.event.AnvilUpdateEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.level.ExplosionEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 import java.util.List;
-import java.util.Map;
 
-@Mod.EventBusSubscriber(modid = DnfEnhanceMod.MODID)
+@EventBusSubscriber(modid = DnfEnhanceMod.MODID)
 public final class EnhanceEvents {
     private EnhanceEvents() {}
-
-    private static final String MODIFIER_NAME = "DNF Enhance bonus";
 
     @SubscribeEvent
     public static void onItemAttributes(ItemAttributeModifierEvent event) {
@@ -52,22 +48,22 @@ public final class EnhanceEvents {
         double percent = EnhanceLogic.bonusForLevel(level);
         if (percent <= 0) return;
 
-        List<Map.Entry<Attribute, AttributeModifier>> entries =
-                List.copyOf(event.getOriginalModifiers().entries());
+        List<ItemAttributeModifiers.Entry> entries =
+                List.copyOf(event.getDefaultModifiers().modifiers());
 
-        for (Map.Entry<Attribute, AttributeModifier> entry : entries) {
-            Attribute attribute = entry.getKey();
+        for (ItemAttributeModifiers.Entry entry : entries) {
+            Holder<Attribute> attribute = entry.attribute();
             if (!EnhanceLogic.isEnhanceable(attribute)) continue;
 
-            AttributeModifier modifier = entry.getValue();
-            if (MODIFIER_NAME.equals(modifier.getName())) continue;
+            AttributeModifier modifier = entry.modifier();
+            if (modifier.id().getNamespace().equals(DnfEnhanceMod.MODID)) continue;
 
-            double base = modifier.getAmount();
+            double base = modifier.amount();
             if (base <= 0.0) continue;
 
-            event.removeModifier(attribute, modifier);
-            event.addModifier(attribute, new AttributeModifier(modifier.getId(), modifier.getName(),
-                    base * (1.0 + percent), modifier.getOperation()));
+            event.replaceModifier(attribute,
+                    new AttributeModifier(modifier.id(), base * (1.0 + percent), modifier.operation()),
+                    entry.slot());
         }
     }
 
@@ -87,7 +83,7 @@ public final class EnhanceEvents {
         if (level <= 0) return;
 
         double multiplier = 1.0 + EnhanceLogic.bonusForLevel(level);
-        arrow.setBaseDamage(arrow.getBaseDamage() * multiplier);
+        arrow.setBaseDamage(arrow.baseDamage * multiplier);
     }
 
     private static final List<Item> WEAPONS = List.of(
@@ -101,10 +97,10 @@ public final class EnhanceEvents {
     };
 
     @SubscribeEvent
-    public static void onFinalizeSpawn(MobSpawnEvent.FinalizeSpawn event) {
+    public static void onFinalizeSpawn(FinalizeSpawnEvent event) {
         if (event.getLevel().isClientSide()) return;
         if (!(event.getEntity() instanceof Monster monster)) return;
-        if (event.getSpawnType() == MobSpawnType.SPAWNER) return;
+        if (event.getSpawnType() == EntitySpawnReason.SPAWNER) return;
 
         RandomSource random = event.getEntity().getRandom();
         if (random.nextFloat() >= EnhanceConfig.MOB_GEAR_CHANCE.get().floatValue()) return;
@@ -118,7 +114,7 @@ public final class EnhanceEvents {
             EnhanceLogic.applyLevel(stack, level);
             monster.setItemSlot(EquipmentSlot.MAINHAND, stack);
             monster.setGuaranteedDrop(EquipmentSlot.MAINHAND);
-        } else {
+                } else {
             int piece = random.nextInt(ARMOR_SLOTS.length);
             Item[] materials = ARMOR_SLOTS[piece];
             Item armor = materials[Math.min(materials.length - 1, level * materials.length / 11
@@ -144,7 +140,10 @@ public final class EnhanceEvents {
             KaiLiPigHelper.onMasterDied(event.getEntity());
             Player killer = playerResponsibleFor(event.getSource());
             if (killer == null) return;
-            int looting = killer.getMainHandItem().getEnchantmentLevel(Enchantments.MOB_LOOTING);
+            var lootingHolder = level.registryAccess()
+                    .lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT)
+                    .getOrThrow(Enchantments.LOOTING);
+            int looting = killer.getMainHandItem().getEnchantmentLevel(lootingHolder);
             KaiLiPigHelper.dropLoot(level, event.getEntity(), variant, looting);
             return;
         }
@@ -153,7 +152,7 @@ public final class EnhanceEvents {
 
         boolean carriedEnhancedGear = false;
         for (EquipmentSlot slot : EquipmentSlot.values()) {
-            if (slot == EquipmentSlot.OFFHAND) continue;
+            if (slot == EquipmentSlot.OFFHAND || slot == EquipmentSlot.BODY) continue;
             ItemStack gear = monster.getItemBySlot(slot);
             if (!gear.isEmpty() && EnhanceLogic.getLevel(gear) > 0) {
                 carriedEnhancedGear = true;
@@ -164,8 +163,10 @@ public final class EnhanceEvents {
         }
 
         if (carriedEnhancedGear && event.getSource().getEntity() instanceof Player killer) {
+            var lootingHolder = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT)
+                    .getOrThrow(Enchantments.LOOTING);
             float chance = EnhanceConfig.CARBON_DROP_CHANCE.get().floatValue()
-                    + 0.05f * killer.getMainHandItem().getEnchantmentLevel(Enchantments.MOB_LOOTING);
+                    + 0.05f * killer.getMainHandItem().getEnchantmentLevel(lootingHolder);
             RandomSource random = level.getRandom();
             if (random.nextFloat() < chance) {
                 int count = 1 + random.nextInt(3);
@@ -176,15 +177,17 @@ public final class EnhanceEvents {
         }
     }
 
-    private static Player playerResponsibleFor(DamageSource source) {
+    private static Player playerResponsibleFor(net.minecraft.world.damagesource.DamageSource source) {
         Entity direct = source.getEntity();
         if (direct instanceof Player player) {
             return player;
         }
-        if (direct instanceof Projectile projectile && projectile.getOwner() instanceof Player owner) {
+        if (direct instanceof net.minecraft.world.entity.projectile.Projectile projectile
+                && projectile.getOwner() instanceof Player owner) {
             return owner;
         }
-        if (direct instanceof TamableAnimal tameable && tameable.getOwner() instanceof Player owner) {
+        if (direct instanceof net.minecraft.world.entity.TamableAnimal tameable
+                && tameable.getOwner() instanceof Player owner) {
             return owner;
         }
         Entity indirect = source.getDirectEntity();
@@ -195,7 +198,7 @@ public final class EnhanceEvents {
     }
 
     @SubscribeEvent
-    public static void onLivingHurt(LivingHurtEvent event) {
+    public static void onLivingDamage(LivingDamageEvent.Post event) {
         if (event.getEntity().level().isClientSide()) return;
         if (!(event.getEntity() instanceof Pig pig)) return;
         KaiLiPigHelper.KaiLiVariant variant = KaiLiPigHelper.combatVariantOf(pig);
@@ -207,18 +210,7 @@ public final class EnhanceEvents {
     }
 
     @SubscribeEvent
-    public static void onExplosionDetonate(ExplosionEvent.Detonate event) {
-        var source = event.getExplosion().getDirectSourceEntity();
-        if (source != null && source.getTags().contains(KaiLiPigHelper.TAG_TNT)) {
-            event.getExplosion().getToBlow().clear();
-            event.getAffectedEntities().removeIf(entity ->
-                    entity instanceof Pig pig && KaiLiPigHelper.getVariant(pig) != null);
-        }
-    }
-
-    @SubscribeEvent
-    public static void onServerTick(TickEvent.ServerTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
+    public static void onServerTick(ServerTickEvent.Post event) {
         KaiLiPigHelper.tickMasters(event.getServer());
     }
 
@@ -236,6 +228,16 @@ public final class EnhanceEvents {
     }
 
     @SubscribeEvent
+    public static void onExplosionDetonate(ExplosionEvent.Detonate event) {
+        var source = event.getExplosion().getDirectSourceEntity();
+        if (source != null && source.entityTags().contains(KaiLiPigHelper.TAG_TNT)) {
+            event.getAffectedBlocks().clear();
+            event.getAffectedEntities().removeIf(entity ->
+                    entity instanceof Pig pig && KaiLiPigHelper.getVariant(pig) != null);
+        }
+    }
+
+    @SubscribeEvent
     public static void onAnvilUpdate(AnvilUpdateEvent event) {
         ItemStack left = event.getLeft();
         int level = EnhanceLogic.getLevel(left);
@@ -246,13 +248,14 @@ public final class EnhanceEvents {
         if (name == null || name.isBlank()) return;
         if (name.equals(left.getHoverName().getString())) return;
 
-        int repairCost = left.getBaseRepairCost();
+        int repairCost = left.getOrDefault(DataComponents.REPAIR_COST, 0);
         if (repairCost + 1 >= 40 && !event.getPlayer().getAbilities().instabuild) return;
 
         ItemStack output = left.copy();
-        output.setHoverName(EnhanceLogic.buildDisplayName(level, EnhanceLogic.stripPrefix(name)));
+        output.set(DataComponents.CUSTOM_NAME,
+                EnhanceLogic.buildDisplayName(level, EnhanceLogic.stripPrefix(name)));
         event.setOutput(output);
-        event.setCost(repairCost + 1);
+        event.setXpCost((int) (repairCost + 1L));
         event.setMaterialCost(0);
     }
 }

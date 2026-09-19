@@ -2,23 +2,23 @@ package com.xulai.dnfenhance.registry;
 
 import com.xulai.dnfenhance.DnfEnhanceMod;
 import com.xulai.dnfenhance.block.EnhancementFurnaceBlockEntity;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 public final class ModBlockEntities {
     private ModBlockEntities() {}
 
     public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES =
-            DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, DnfEnhanceMod.MODID);
+            DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, DnfEnhanceMod.MODID);
 
-    public static final RegistryObject<BlockEntityType<EnhancementFurnaceBlockEntity>> ENHANCEMENT_FURNACE =
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<EnhancementFurnaceBlockEntity>> ENHANCEMENT_FURNACE =
             BLOCK_ENTITIES.register("enhancement_furnace",
-                    () -> BlockEntityType.Builder.of(
+                    () -> new BlockEntityType<>(
                             EnhancementFurnaceBlockEntity::new,
-                            ModBlocks.ENHANCEMENT_FURNACE.get()).build(null));
+                            ModBlocks.ENHANCEMENT_FURNACE.get()));
 
     public static void register(IEventBus modEventBus) {
         BLOCK_ENTITIES.register(modEventBus);

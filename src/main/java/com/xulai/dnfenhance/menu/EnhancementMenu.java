@@ -18,6 +18,8 @@ public class EnhancementMenu extends AbstractContainerMenu {
 
     private final EnhancementFurnaceBlockEntity furnace;
     private final BlockPos furnacePos;
+    private int auraCount = 0;
+    private int auraVariant = -1;
 
     public EnhancementMenu(int containerId, Inventory playerInventory,
             EnhancementFurnaceBlockEntity furnace, BlockPos pos) {
@@ -61,21 +63,36 @@ public class EnhancementMenu extends AbstractContainerMenu {
         this.addDataSlots(new ContainerData() {
             @Override
             public int get(int index) {
-                return index == 0 ? furnace.getAutoTarget() : 0;
+                return switch (index) {
+                    case 0 -> furnace.getAutoTarget();
+                    case 1 -> furnace.getAuraCount();
+                    case 2 -> furnace.getAuraVariant();
+                    default -> 0;
+                };
             }
 
             @Override
             public void set(int index, int value) {
-                if (index == 0) {
-                    furnace.setAutoTarget(value);
+                switch (index) {
+                    case 0 -> furnace.setAutoTarget(value);
+                    case 1 -> auraCount = value;
+                    case 2 -> auraVariant = value;
                 }
             }
 
             @Override
             public int getCount() {
-                return 1;
+                return 3;
             }
         });
+    }
+
+    public int getAuraCount() {
+        return this.auraCount;
+    }
+
+    public int getAuraVariant() {
+        return this.auraVariant;
     }
 
     public EnhancementFurnaceBlockEntity getFurnace() {
@@ -131,7 +148,7 @@ public class EnhancementMenu extends AbstractContainerMenu {
                 }
             }
             if (stack.isEmpty()) {
-                slot.set(ItemStack.EMPTY);
+                slot.setByPlayer(ItemStack.EMPTY);
             } else {
                 slot.setChanged();
             }

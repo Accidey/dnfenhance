@@ -5,17 +5,19 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.animal.Pig;
+import net.minecraft.world.entity.animal.pig.Pig;
 import net.minecraft.world.entity.item.PrimedTnt;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
@@ -79,12 +81,12 @@ public final class KaiLiPigHelper {
     }
 
     public static boolean isCombatActive(Entity entity) {
-        return entity.getTags().contains(TAG_ACTIVE);
+        return entity.entityTags().contains(TAG_ACTIVE);
     }
 
     public static KaiLiVariant combatVariantOf(Entity entity) {
-        if (entity.getTags().contains(TAG_MASTER)) return KaiLiVariant.MASTER;
-        if (entity.getTags().contains(TAG_BLACKENED)) return KaiLiVariant.BLACKENED;
+        if (entity.entityTags().contains(TAG_MASTER)) return KaiLiVariant.MASTER;
+        if (entity.entityTags().contains(TAG_BLACKENED)) return KaiLiVariant.BLACKENED;
         return null;
     }
 
@@ -170,7 +172,11 @@ public final class KaiLiPigHelper {
         if (dmg > 0) {
             target.hurt(level.damageSources().sonicBoom(pig), (float) dmg);
         }
-        target.knockback(1.2, pig.getX(), pig.getZ());
+        var away = target.position().subtract(pig.position());
+        var horizontal = new net.minecraft.world.phys.Vec3(away.x, 0.0, away.z);
+        if (horizontal.lengthSqr() < 1.0E-4) horizontal = new net.minecraft.world.phys.Vec3(0.0, 0.0, 1.0);
+        var impulse = horizontal.normalize().scale(1.2).add(0.0, 0.4, 0.0);
+        target.push(impulse);
     }
 
     private static Vec3 predictKnockbackPoint(Pig pig, Player attacker) {
@@ -224,12 +230,12 @@ public final class KaiLiPigHelper {
     }
 
     private static void throwTnt(ServerLevel level, Pig pig, Vec3 target, int fuse) {
-        PrimedTnt tnt = EntityType.TNT.create(level);
+        PrimedTnt tnt = EntityTypes.TNT.create(level, EntitySpawnReason.MOB_SUMMONED);
         if (tnt == null) return;
         double px = pig.getX();
         double py = pig.getY() + 0.8;
         double pz = pig.getZ();
-        tnt.moveTo(px, py, pz, pig.getYRot(), 0.0F);
+        tnt.snapTo(px, py, pz, pig.getYRot(), 0.0F);
         double dx = target.x - px;
         double dy = target.y + 0.5 - py;
         double dz = target.z - pz;
@@ -246,7 +252,7 @@ public final class KaiLiPigHelper {
     private static List<Monster> summonSquad(ServerLevel level, Pig pig, Player focus) {
         int min = EnhanceConfig.PIG_MASTER_MINION_MIN.get();
         int max = Math.max(min, EnhanceConfig.PIG_MASTER_MINION_MAX.get());
-        int count = min + (max > min ? level.random.nextInt(max - min + 1) : 0);
+        int count = min + (max > min ? level.getRandom().nextInt(max - min + 1) : 0);
         double cx = focus != null ? focus.getX() : pig.getX();
         double cy = focus != null ? focus.getY() : pig.getY();
         double cz = focus != null ? focus.getZ() : pig.getZ();
@@ -259,17 +265,17 @@ public final class KaiLiPigHelper {
     }
 
     private static Monster spawnMinion(ServerLevel level, double cx, double cy, double cz) {
-        boolean zombie = level.random.nextBoolean();
-        Monster mob = zombie ? EntityType.ZOMBIE.create(level) : EntityType.SKELETON.create(level);
+        boolean zombie = level.getRandom().nextBoolean();
+        Monster mob = zombie ? EntityTypes.ZOMBIE.create(level, EntitySpawnReason.MOB_SUMMONED) : EntityTypes.SKELETON.create(level, EntitySpawnReason.MOB_SUMMONED);
         if (mob == null) return null;
-        double angle = level.random.nextDouble() * Math.PI * 2.0;
-        double dist = 2.0 + level.random.nextDouble() * 3.0;
+        double angle = level.getRandom().nextDouble() * Math.PI * 2.0;
+        double dist = 2.0 + level.getRandom().nextDouble() * 3.0;
         double x = cx + Math.cos(angle) * dist;
         double z = cz + Math.sin(angle) * dist;
-        mob.moveTo(x, cy, z, level.random.nextFloat() * 360.0F, 0.0F);
+        mob.snapTo(x, cy, z, level.getRandom().nextFloat() * 360.0F, 0.0F);
         int min = EnhanceConfig.PIG_MASTER_MINION_LEVEL_MIN.get();
         int max = Math.max(min, EnhanceConfig.PIG_MASTER_MINION_LEVEL_MAX.get());
-        int gearLevel = min + (max > min ? level.random.nextInt(max - min + 1) : 0);
+        int gearLevel = min + (max > min ? level.getRandom().nextInt(max - min + 1) : 0);
         ItemStack weapon = new ItemStack(zombie ? Items.IRON_SWORD : Items.BOW);
         EnhanceLogic.applyLevel(weapon, gearLevel);
         mob.setItemSlot(EquipmentSlot.MAINHAND, weapon);
@@ -293,6 +299,10 @@ public final class KaiLiPigHelper {
         if (!(entity instanceof Pig pig)) return null;
         Component custom = pig.getCustomName();
         if (custom == null) return null;
+        if (custom.getContents() instanceof TranslatableContents tc) {
+            KaiLiVariant byKey = byTranslationKey(tc.getKey());
+            if (byKey != null) return byKey;
+        }
         String name = custom.getString().trim();
         for (KaiLiVariant v : KaiLiVariant.values()) {
             if (name.equals(kaiLiName(v).getString())) return v;
@@ -300,8 +310,17 @@ public final class KaiLiPigHelper {
         return null;
     }
 
+    private static KaiLiVariant byTranslationKey(String key) {
+        return switch (key) {
+            case "dnfenhance.pig.kai_li" -> KaiLiVariant.NORMAL;
+            case "dnfenhance.pig.kai_li_blackened" -> KaiLiVariant.BLACKENED;
+            case "dnfenhance.pig.kai_li_master" -> KaiLiVariant.MASTER;
+            default -> null;
+        };
+    }
+
     public static boolean isSummoned(Entity entity) {
-        return entity.getTags().contains(TAG_SUMMONED);
+        return entity.entityTags().contains(TAG_SUMMONED);
     }
 
     public static int countNearby(Level level, BlockPos pos, KaiLiVariant variant) {
@@ -359,8 +378,8 @@ public final class KaiLiPigHelper {
 
         double y = pos.getY() + 1.0;
         for (int attempt = 0; attempt < 12; attempt++) {
-            double angle = level.random.nextDouble() * Math.PI * 2.0;
-            double dist = 1.0 + level.random.nextDouble();
+            double angle = level.getRandom().nextDouble() * Math.PI * 2.0;
+            double dist = 1.0 + level.getRandom().nextDouble();
             double x = pos.getX() + 0.5 + Math.cos(angle) * dist;
             double z = pos.getZ() + 0.5 + Math.sin(angle) * dist;
             BlockPos feet = BlockPos.containing(x, y, z);
@@ -373,9 +392,9 @@ public final class KaiLiPigHelper {
     }
 
     private static Pig spawnNamedPig(ServerLevel level, double x, double y, double z, KaiLiVariant variant) {
-        Pig pig = EntityType.PIG.create(level);
+        Pig pig = EntityTypes.PIG.create(level, EntitySpawnReason.MOB_SUMMONED);
         if (pig == null) return null;
-        pig.moveTo(x, y, z, level.random.nextFloat() * 360.0F, 0.0F);
+        pig.snapTo(x, y, z, level.getRandom().nextFloat() * 360.0F, 0.0F);
         pig.setBaby(false);
         pig.setCustomName(kaiLiName(variant));
         pig.setCustomNameVisible(true);
@@ -461,7 +480,7 @@ public final class KaiLiPigHelper {
         }
         if (total <= 0.0) return;
         for (int n = 0; n < count; n++) {
-            double roll = level.random.nextDouble() * total;
+            double roll = level.getRandom().nextDouble() * total;
             int tier = 10;
             double acc = 0.0;
             for (int i = 0; i < weights.size() && i < 6; i++) {
@@ -486,7 +505,7 @@ public final class KaiLiPigHelper {
             Item item, int min, int max, int bonus) {
         int low = Math.max(0, Math.min(min, max));
         int high = Math.max(low, max);
-        int rolled = high > low ? level.random.nextInt(high - low + 1) : 0;
+        int rolled = high > low ? level.getRandom().nextInt(high - low + 1) : 0;
         int count = low + rolled + bonus;
         if (count <= 0) return;
         level.addFreshEntity(new net.minecraft.world.entity.item.ItemEntity(level,

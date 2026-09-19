@@ -1,19 +1,21 @@
 package com.xulai.dnfenhance.enhance;
 
 import com.xulai.dnfenhance.DnfEnhanceMod;
-import net.minecraft.ChatFormatting;
+import com.xulai.dnfenhance.registry.ModDataComponents;
+import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ProjectileWeaponItem;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.world.item.component.ItemAttributeModifiers;
 
 import java.util.List;
 import java.util.Locale;
@@ -28,11 +30,9 @@ public final class EnhanceLogic {
     public static final Pattern ENHANCE_PREFIX = Pattern.compile("^\\+\\d+\\s*");
     private static final Pattern DOWN_PATTERN = Pattern.compile("DOWN_(\\d+)");
 
-    public static final String NBT_LEVEL = "dnfenhance_level";
-
     public static int getLevel(ItemStack stack) {
-        if (stack.isEmpty() || !stack.hasTag()) return 0;
-        return Math.max(0, stack.getTag().getInt(NBT_LEVEL));
+        Integer level = stack.get(ModDataComponents.ENHANCE_LEVEL.get());
+        return level == null ? 0 : Math.max(0, level);
     }
 
     public static int maxLevel() {
@@ -42,34 +42,33 @@ public final class EnhanceLogic {
     public static boolean canEnhance(ItemStack stack) {
         if (stack.isEmpty()) return false;
         if (stack.getItem() instanceof ProjectileWeaponItem) return true;
-        for (EquipmentSlot slot : EquipmentSlot.values()) {
-            for (var entry : stack.getItem().getDefaultAttributeModifiers(slot).entries()) {
-                if (!isEnhanceable(entry.getKey())) continue;
-                if (entry.getValue().getAmount() > 0.0) return true;
-            }
+        ItemAttributeModifiers modifiers = stack.getAttributeModifiers();
+        for (ItemAttributeModifiers.Entry entry : modifiers.modifiers()) {
+            if (!isEnhanceable(entry.attribute())) continue;
+            if (entry.modifier().amount() > 0.0) return true;
         }
         return false;
     }
 
-    public static boolean isVanillaAttribute(Attribute attribute) {
-        ResourceLocation id = ForgeRegistries.ATTRIBUTES.getKey(attribute);
-        return id != null && id.getNamespace().equals("minecraft");
+    public static boolean isVanillaAttribute(Holder<Attribute> attribute) {
+        return attribute.unwrapKey()
+                .map(key -> key.identifier().getNamespace().equals("minecraft"))
+                .orElse(false);
     }
 
-    public static boolean isAttributeBlacklisted(Attribute attribute) {
-        ResourceLocation loc = ForgeRegistries.ATTRIBUTES.getKey(attribute);
-        if (loc == null) return true;
-        String id = loc.toString();
-        String path = loc.getPath();
+    public static boolean isAttributeBlacklisted(Holder<Attribute> attribute) {
+        String id = attribute.unwrapKey().map(key -> key.identifier().toString()).orElse(null);
+        if (id == null) return true;
+        String path = attribute.unwrapKey().map(key -> key.identifier().getPath()).orElse(null);
         for (String raw : EnhanceConfig.ENHANCE_ATTRIBUTE_BLACKLIST.get()) {
             if (raw == null || raw.isBlank()) continue;
             String entry = raw.trim();
-            if (id.equalsIgnoreCase(entry) || path.equalsIgnoreCase(entry)) return true;
+            if (id.equalsIgnoreCase(entry) || (path != null && path.equalsIgnoreCase(entry))) return true;
         }
         return false;
     }
 
-    public static boolean isEnhanceable(Attribute attribute) {
+    public static boolean isEnhanceable(Holder<Attribute> attribute) {
         if (attribute == null) return false;
         if (isAttributeBlacklisted(attribute)) return false;
         return isVanillaAttribute(attribute) || EnhanceConfig.ENHANCE_MOD_ATTRIBUTES.get();
@@ -152,8 +151,8 @@ public final class EnhanceLogic {
 
     public static boolean isProtectionCharm(ItemStack stack) {
         if (stack.isEmpty()) return false;
-        ResourceLocation key = ForgeRegistries.ITEMS.getKey(stack.getItem());
-        return key != null && key.equals(new ResourceLocation(DnfEnhanceMod.MODID, "luck_charm"));
+        return BuiltInRegistries.ITEM.getKey(stack.getItem())
+                .equals(Identifier.fromNamespaceAndPath(DnfEnhanceMod.MODID, "luck_charm"));
     }
 
     public static boolean isEnhanceTicket(ItemStack stack) {
@@ -200,28 +199,34 @@ public final class EnhanceLogic {
 
     public static void applyLevel(ItemStack stack, int level) {
         if (level <= 0) {
-            if (stack.hasTag()) stack.removeTagKey(NBT_LEVEL);
-            if (stack.hasCustomHoverName()) {
-                String stripped = ENHANCE_PREFIX.matcher(stack.getHoverName().getString()).replaceFirst("");
-                String defaultName = stack.getItem().getName(stack).getString();
-                if (stripped.isEmpty() || stripped.equals(defaultName)) {
-                    stack.removeTagKey("display.Name");
+            stack.remove(ModDataComponents.ENHANCE_LEVEL.get());
+            stack.remove(DataComponents.ENCHANTMENT_GLINT_OVERRIDE);
+            stack.remove(DataComponents.RARITY);
+            Component customName = stack.get(DataComponents.CUSTOM_NAME);
+            if (customName != null) {
+                String stripped = ENHANCE_PREFIX.matcher(customName.getString()).replaceFirst("");
+                if (stripped.isEmpty() || stripped.equals(stack.getItem().getName(stack).getString())) {
+                    stack.remove(DataComponents.CUSTOM_NAME);
                 } else {
-                    stack.setHoverName(Component.literal(stripped));
+                    stack.set(DataComponents.CUSTOM_NAME, Component.literal(stripped));
                 }
             }
             return;
         }
 
-        stack.getOrCreateTag().putInt(NBT_LEVEL, level);
+        stack.set(ModDataComponents.ENHANCE_LEVEL.get(), level);
+        stack.remove(DataComponents.ENCHANTMENT_GLINT_OVERRIDE);
 
         String baseName;
-        if (stack.hasCustomHoverName()) {
-            baseName = ENHANCE_PREFIX.matcher(stack.getHoverName().getString()).replaceFirst("");
+        Component customName = stack.get(DataComponents.CUSTOM_NAME);
+        if (customName != null) {
+            baseName = ENHANCE_PREFIX.matcher(customName.getString()).replaceFirst("");
         } else {
             baseName = stack.getItem().getName(stack).getString();
         }
-        stack.setHoverName(buildDisplayName(level, baseName));
+        stack.set(DataComponents.CUSTOM_NAME, buildDisplayName(level, baseName));
+
+        stack.remove(DataComponents.RARITY);
     }
 
     public static Style baseNameStyle() {
@@ -233,20 +238,20 @@ public final class EnhanceLogic {
     }
 
     public static final int[] RAINBOW = {
-            0xFF5555,
-            0xFFAA00,
-            0xFFFF55,
-            0x55FF55,
-            0x55FFFF,
-            0x5555FF,
-            0xFF55FF
+            0xFFFF5555,
+            0xFFFFAA00,
+            0xFFFFFF55,
+            0xFF55FF55,
+            0xFF55FFFF,
+            0xFF5555FF,
+            0xFFFF55FF
     };
 
     public static int prefixColor(int level, int charIndex) {
         if (level >= 14) return RAINBOW[Math.floorMod(charIndex, RAINBOW.length)];
-        if (level >= 11) return 0xFF5555;
-        if (level >= 8)  return 0xFFAA00;
-        return 0xFFFFFF;
+          if (level >= 11) return 0xFFFF5555;
+          if (level >= 8)  return 0xFFFFAA00;
+        return 0xFFFFFFFF;
     }
 
     public static MutableComponent buildDisplayName(int level, String baseName) {

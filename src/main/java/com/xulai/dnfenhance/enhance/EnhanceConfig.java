@@ -1,72 +1,72 @@
 package com.xulai.dnfenhance.enhance;
 
-import net.minecraftforge.common.ForgeConfigSpec;
+import net.neoforged.neoforge.common.ModConfigSpec;
 
 import java.util.List;
 
 public final class EnhanceConfig {
     private EnhanceConfig() {}
 
-    public static final ForgeConfigSpec SPEC;
+    public static final ModConfigSpec SPEC;
 
-    public static final ForgeConfigSpec.ConfigValue<List<? extends Double>> SUCCESS_RATES;
-    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> FAILURE_PENALTIES;
-    public static final ForgeConfigSpec.ConfigValue<List<? extends Integer>> CARBON_COSTS;
-    public static final ForgeConfigSpec.ConfigValue<List<? extends Double>> BONUS_PER_LEVELS;
-    public static final ForgeConfigSpec.DoubleValue LUCK_BONUS;
-    public static final ForgeConfigSpec.DoubleValue ADVANCED_BONUS;
-    public static final ForgeConfigSpec.DoubleValue MOB_GEAR_CHANCE;
-    public static final ForgeConfigSpec.DoubleValue CARBON_DROP_CHANCE;
-    public static final ForgeConfigSpec.BooleanValue PROTECTION_CONSUME;
+    public static final ModConfigSpec.ConfigValue<List<? extends Double>> SUCCESS_RATES;
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> FAILURE_PENALTIES;
+    public static final ModConfigSpec.ConfigValue<List<? extends Integer>> CARBON_COSTS;
+    public static final ModConfigSpec.ConfigValue<List<? extends Double>> BONUS_PER_LEVELS;
+    public static final ModConfigSpec.DoubleValue LUCK_BONUS;
+    public static final ModConfigSpec.DoubleValue ADVANCED_BONUS;
+    public static final ModConfigSpec.DoubleValue MOB_GEAR_CHANCE;
+    public static final ModConfigSpec.DoubleValue CARBON_DROP_CHANCE;
+    public static final ModConfigSpec.BooleanValue PROTECTION_CONSUME;
 
-    public static final ForgeConfigSpec.BooleanValue ENHANCE_MOD_ATTRIBUTES;
-    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> ENHANCE_ATTRIBUTE_BLACKLIST;
+    public static final ModConfigSpec.BooleanValue ENHANCE_MOD_ATTRIBUTES;
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> ENHANCE_ATTRIBUTE_BLACKLIST;
 
     public static final int PIG_MAX_COUNT = 1;
 
-    public static final ForgeConfigSpec.BooleanValue PIG_ENABLED;
-    public static final ForgeConfigSpec.DoubleValue PIG_SUMMON_CHANCE;
-    public static final ForgeConfigSpec.DoubleValue PIG_BLACKENED_CHANCE;
-    public static final ForgeConfigSpec.DoubleValue PIG_MASTER_CHANCE;
-    public static final ForgeConfigSpec.DoubleValue PIG_LUCK_PER_SUCCESS;
-    public static final ForgeConfigSpec.DoubleValue PIG_AURA_RADIUS;
-    public static final ForgeConfigSpec.DoubleValue PIG_AURA_PENALTY;
-    public static final ForgeConfigSpec.BooleanValue PIG_AURA_STACKING;
-    public static final ForgeConfigSpec.IntValue PIG_BLACKENED_HEALTH;
-    public static final ForgeConfigSpec.IntValue PIG_MASTER_HEALTH;
-    public static final ForgeConfigSpec.IntValue PIG_ADVANCED_CARBON_MIN;
-    public static final ForgeConfigSpec.IntValue PIG_ADVANCED_CARBON_MAX;
-    public static final ForgeConfigSpec.IntValue PIG_CHARM_MIN;
-    public static final ForgeConfigSpec.IntValue PIG_CHARM_MAX;
-    public static final ForgeConfigSpec.IntValue PIG_BLACKENED_CARBON_MIN;
-    public static final ForgeConfigSpec.IntValue PIG_BLACKENED_CARBON_MAX;
-    public static final ForgeConfigSpec.IntValue PIG_BLACKENED_CHARM_MIN;
-    public static final ForgeConfigSpec.IntValue PIG_BLACKENED_CHARM_MAX;
-    public static final ForgeConfigSpec.IntValue PIG_MASTER_CARBON_MIN;
-    public static final ForgeConfigSpec.IntValue PIG_MASTER_CARBON_MAX;
-    public static final ForgeConfigSpec.IntValue PIG_MASTER_CHARM_MIN;
-    public static final ForgeConfigSpec.IntValue PIG_MASTER_CHARM_MAX;
-    public static final ForgeConfigSpec.DoubleValue PIG_MASTER_SONIC_DAMAGE;
-    public static final ForgeConfigSpec.IntValue PIG_MASTER_COMBO_COOLDOWN;
-    public static final ForgeConfigSpec.IntValue PIG_MASTER_TNT_INTERVAL;
-    public static final ForgeConfigSpec.DoubleValue PIG_MASTER_PROXIMITY_RADIUS;
-    public static final ForgeConfigSpec.IntValue PIG_MASTER_PROXIMITY_COOLDOWN;
-    public static final ForgeConfigSpec.IntValue PIG_MASTER_SQUAD_RESPAWN;
-    public static final ForgeConfigSpec.DoubleValue PIG_MASTER_TNT_RANGE;
-    public static final ForgeConfigSpec.IntValue PIG_MASTER_MINION_MIN;
-    public static final ForgeConfigSpec.IntValue PIG_MASTER_MINION_MAX;
-    public static final ForgeConfigSpec.IntValue PIG_MASTER_MINION_LEVEL_MIN;
-    public static final ForgeConfigSpec.IntValue PIG_MASTER_MINION_LEVEL_MAX;
-    public static final ForgeConfigSpec.IntValue PIG_LOOTING_BONUS;
+    public static final ModConfigSpec.BooleanValue PIG_ENABLED;
+    public static final ModConfigSpec.DoubleValue PIG_SUMMON_CHANCE;
+    public static final ModConfigSpec.DoubleValue PIG_BLACKENED_CHANCE;
+    public static final ModConfigSpec.DoubleValue PIG_MASTER_CHANCE;
+    public static final ModConfigSpec.DoubleValue PIG_LUCK_PER_SUCCESS;
+    public static final ModConfigSpec.DoubleValue PIG_AURA_RADIUS;
+    public static final ModConfigSpec.DoubleValue PIG_AURA_PENALTY;
+    public static final ModConfigSpec.BooleanValue PIG_AURA_STACKING;
+    public static final ModConfigSpec.IntValue PIG_BLACKENED_HEALTH;
+    public static final ModConfigSpec.IntValue PIG_MASTER_HEALTH;
+    public static final ModConfigSpec.IntValue PIG_ADVANCED_CARBON_MIN;
+    public static final ModConfigSpec.IntValue PIG_ADVANCED_CARBON_MAX;
+    public static final ModConfigSpec.IntValue PIG_CHARM_MIN;
+    public static final ModConfigSpec.IntValue PIG_CHARM_MAX;
+    public static final ModConfigSpec.IntValue PIG_BLACKENED_CARBON_MIN;
+    public static final ModConfigSpec.IntValue PIG_BLACKENED_CARBON_MAX;
+    public static final ModConfigSpec.IntValue PIG_BLACKENED_CHARM_MIN;
+    public static final ModConfigSpec.IntValue PIG_BLACKENED_CHARM_MAX;
+    public static final ModConfigSpec.IntValue PIG_MASTER_CARBON_MIN;
+    public static final ModConfigSpec.IntValue PIG_MASTER_CARBON_MAX;
+    public static final ModConfigSpec.IntValue PIG_MASTER_CHARM_MIN;
+    public static final ModConfigSpec.IntValue PIG_MASTER_CHARM_MAX;
+    public static final ModConfigSpec.DoubleValue PIG_MASTER_SONIC_DAMAGE;
+    public static final ModConfigSpec.IntValue PIG_MASTER_COMBO_COOLDOWN;
+    public static final ModConfigSpec.IntValue PIG_MASTER_TNT_INTERVAL;
+    public static final ModConfigSpec.DoubleValue PIG_MASTER_PROXIMITY_RADIUS;
+    public static final ModConfigSpec.IntValue PIG_MASTER_PROXIMITY_COOLDOWN;
+    public static final ModConfigSpec.IntValue PIG_MASTER_SQUAD_RESPAWN;
+    public static final ModConfigSpec.DoubleValue PIG_MASTER_TNT_RANGE;
+    public static final ModConfigSpec.IntValue PIG_MASTER_MINION_MIN;
+    public static final ModConfigSpec.IntValue PIG_MASTER_MINION_MAX;
+    public static final ModConfigSpec.IntValue PIG_MASTER_MINION_LEVEL_MIN;
+    public static final ModConfigSpec.IntValue PIG_MASTER_MINION_LEVEL_MAX;
+    public static final ModConfigSpec.IntValue PIG_LOOTING_BONUS;
 
-    public static final ForgeConfigSpec.ConfigValue<List<? extends Double>> TICKET_SUCCESS_RATES;
-    public static final ForgeConfigSpec.ConfigValue<List<? extends Double>> PIG_MASTER_TICKET_RATES;
-    public static final ForgeConfigSpec.ConfigValue<List<? extends Double>> PIG_BLACKENED_TICKET_RATES;
-    public static final ForgeConfigSpec.IntValue PIG_MASTER_TICKET_COUNT;
-    public static final ForgeConfigSpec.IntValue PIG_BLACKENED_TICKET_COUNT;
+    public static final ModConfigSpec.ConfigValue<List<? extends Double>> TICKET_SUCCESS_RATES;
+    public static final ModConfigSpec.ConfigValue<List<? extends Double>> PIG_MASTER_TICKET_RATES;
+    public static final ModConfigSpec.ConfigValue<List<? extends Double>> PIG_BLACKENED_TICKET_RATES;
+    public static final ModConfigSpec.IntValue PIG_MASTER_TICKET_COUNT;
+    public static final ModConfigSpec.IntValue PIG_BLACKENED_TICKET_COUNT;
 
     static {
-        ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
+        ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
 
         builder.comment(
                 "DNF 强化系统全局配置（config/dnfenhance.toml，跨存档共用，修改文件后自动热重载）。",
@@ -180,12 +180,12 @@ public final class EnhanceConfig {
 
         ENHANCE_ATTRIBUTE_BLACKLIST = builder
                 .comment("永不参与强化的属性 ID，默认排除武器攻速（原版的配平惩罚）。",
-                        "可写完整注册名 minecraft:generic.attack_speed，也可省略命名空间 generic.attack_speed。",
+                        "可写完整注册名 minecraft:attack_speed，也可省略命名空间 attack_speed。",
                         "清空本列表 = 不排除任何属性，装备上所有正向加成都会被强化。",
                         "Attribute ids that never scale; weapon attack speed is excluded by default.",
                         "Full id or bare path both work. Empty list = exclude nothing.")
                 .defineListAllowEmpty("enhanceAttributeBlacklist",
-                        List.of("minecraft:generic.attack_speed"),
+                        List.of("minecraft:attack_speed"),
                         o -> o instanceof String s && s.matches("(?i)^([a-z0-9_.-]+:)?[a-z0-9/._-]+$"));
 
         builder.comment(" ",

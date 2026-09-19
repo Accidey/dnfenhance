@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "CCC",
+    "CGC",
+    "CCC"
+  ],
+  "key": {
+    "C": "dnfenhance:furnace_carbon",
+    "G": "minecraft:gold_ingot"
+  },
+  "result": {
+    "count": 1,
+    "id": "dnfenhance:advanced_furnace_carbon"
+  }
+}

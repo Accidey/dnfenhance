@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "dnfenhance:enhance_ticket_10",
+    "dnfenhance:enhance_ticket_10",
+    "dnfenhance:enhance_ticket_10",
+    "dnfenhance:enhance_ticket_10",
+    "dnfenhance:enhance_ticket_10",
+    "dnfenhance:enhance_ticket_10",
+    "dnfenhance:enhance_ticket_10",
+    "dnfenhance:enhance_ticket_10",
+    "dnfenhance:enhance_ticket_10"
+  ],
+  "result": {
+    "count": 1,
+    "id": "dnfenhance:enhance_ticket_11"
+  }
+}
