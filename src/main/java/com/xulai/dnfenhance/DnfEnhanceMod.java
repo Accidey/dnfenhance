@@ -30,7 +30,7 @@ public class DnfEnhanceMod {
 
         modEventBus.addListener(ModNetworking::register);
 
-        modContainer.registerConfig(ModConfig.Type.COMMON, EnhanceConfig.SPEC, "dnfenhance.toml");
+        modContainer.registerConfig(ModConfig.Type.LOCAL, EnhanceConfig.SPEC, "dnfenhance.toml");
 
         LOGGER.info("DNF Enhance mod loaded");
     }
