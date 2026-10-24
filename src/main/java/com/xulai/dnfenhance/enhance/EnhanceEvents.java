@@ -31,6 +31,7 @@ import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.living.MobSpawnEvent;
 import net.minecraftforge.event.level.ExplosionEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -43,7 +44,7 @@ public final class EnhanceEvents {
 
     private static final String MODIFIER_NAME = "DNF Enhance bonus";
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onItemAttributes(ItemAttributeModifierEvent event) {
         ItemStack stack = event.getItemStack();
         int level = EnhanceLogic.getLevel(stack);
@@ -53,7 +54,7 @@ public final class EnhanceEvents {
         if (percent <= 0) return;
 
         List<Map.Entry<Attribute, AttributeModifier>> entries =
-                List.copyOf(event.getOriginalModifiers().entries());
+                List.copyOf(event.getModifiers().entries());
 
         for (Map.Entry<Attribute, AttributeModifier> entry : entries) {
             Attribute attribute = entry.getKey();
