@@ -7,8 +7,8 @@
     "CCC"
   ],
   "key": {
-    "C": { "item": "dnfenhance:furnace_carbon" },
-    "G": { "item": "minecraft:gold_ingot" }
+    "C": "dnfenhance:furnace_carbon",
+    "G": "minecraft:gold_ingot"
   },
   "result": {
     "count": 1,
