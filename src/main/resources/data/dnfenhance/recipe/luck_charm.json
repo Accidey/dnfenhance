@@ -2,10 +2,10 @@
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "ingredients": [
-    { "item": "minecraft:diamond" },
-    { "item": "minecraft:gold_ingot" },
-    { "item": "minecraft:gold_ingot" },
-    { "item": "minecraft:blaze_powder" }
+    "minecraft:diamond",
+    "minecraft:gold_ingot",
+    "minecraft:gold_ingot",
+    "minecraft:blaze_powder"
   ],
   "result": {
     "count": 1,

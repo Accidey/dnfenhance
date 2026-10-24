@@ -2,12 +2,12 @@
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "ingredients": [
-    { "item": "minecraft:coal" },
-    { "item": "minecraft:coal" },
-    { "item": "minecraft:coal" },
-    { "item": "minecraft:coal" },
-    { "item": "minecraft:copper_ingot" },
-    { "item": "minecraft:copper_ingot" }
+    "minecraft:coal",
+    "minecraft:coal",
+    "minecraft:coal",
+    "minecraft:coal",
+    "minecraft:copper_ingot",
+    "minecraft:copper_ingot"
   ],
   "result": {
     "count": 8,

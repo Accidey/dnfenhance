@@ -22,6 +22,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ProjectileWeaponItem;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.item.enchantment.Enchantments;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.ItemAttributeModifierEvent;
@@ -39,7 +40,7 @@ import java.util.List;
 public final class EnhanceEvents {
     private EnhanceEvents() {}
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onItemAttributes(ItemAttributeModifierEvent event) {
         ItemStack stack = event.getItemStack();
         int level = EnhanceLogic.getLevel(stack);
@@ -48,8 +49,7 @@ public final class EnhanceEvents {
         double percent = EnhanceLogic.bonusForLevel(level);
         if (percent <= 0) return;
 
-        List<ItemAttributeModifiers.Entry> entries =
-                List.copyOf(event.getDefaultModifiers().modifiers());
+        List<ItemAttributeModifiers.Entry> entries = List.copyOf(event.getModifiers());
 
         for (ItemAttributeModifiers.Entry entry : entries) {
             Holder<Attribute> attribute = entry.attribute();
