@@ -19,6 +19,10 @@ public final class ModItems {
             ITEMS.register("enhancement_furnace",
                     () -> new BlockItem(ModBlocks.ENHANCEMENT_FURNACE.get(), new Item.Properties()));
 
+    public static final RegistryObject<BlockItem> DECOMPOSER_ITEM =
+            ITEMS.register("decomposer",
+                    () -> new BlockItem(ModBlocks.DECOMPOSER.get(), new Item.Properties()));
+
     public static final RegistryObject<Item> FURNACE_CARBON =
             ITEMS.register("furnace_carbon", () -> new Item(new Item.Properties()));
 

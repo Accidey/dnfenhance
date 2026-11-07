@@ -52,32 +52,54 @@ public final class EnhanceTooltipHandler {
         FormattedText line0 = elements.get(0).left().orElse(null);
         if (line0 == null) return;
 
+        Component base = line0 instanceof Component node
+                ? stripStaticLevel(node, level)
+                : Component.literal(EnhanceLogic.stripLevelMarker(line0.getString()));
+        MutableComponent levelText = EnhanceNameFx.buildLevelText(level, Util.getMillis());
         MutableComponent rebuilt = Component.empty().setStyle(EnhanceLogic.plainNameStyle());
-        rebuilt.append(EnhanceNameFx.buildPrefix(level, Util.getMillis()));
-        rebuilt.append(Component.literal(" ").setStyle(EnhanceLogic.plainNameStyle()));
-
-        if (line0 instanceof Component node) {
-            rebuilt.append(stripStaticPrefix(node, level));
+        if (EnhanceLogic.levelNameOnRight()) {
+            rebuilt.append(base);
+            rebuilt.append(Component.literal(" ").setStyle(EnhanceLogic.plainNameStyle()));
+            rebuilt.append(levelText);
         } else {
-            rebuilt.append(Component.literal(line0.getString()));
+            rebuilt.append(levelText);
+            rebuilt.append(Component.literal(" ").setStyle(EnhanceLogic.plainNameStyle()));
+            rebuilt.append(base);
         }
         elements.set(0, Either.left(rebuilt));
     }
 
-    private static Component stripStaticPrefix(Component node, int level) {
+    private static Component stripStaticLevel(Component node, int level) {
         List<Component> siblings = node.getSiblings();
         if (siblings.isEmpty()) return node;
 
-        int prefixLength = ("+" + level).length();
-        if (siblings.size() == prefixLength + 1
+        int markerLength = ("+" + level).length();
+        String marker = "+" + level;
+        if (siblings.size() == markerLength + 1
                 && siblings.get(0).getString().equals("+")
-                && node.getString().startsWith("+")) {
+                && node.getString().startsWith(marker)) {
             MutableComponent base = Component.empty().setStyle(EnhanceLogic.plainNameStyle());
-            for (int i = prefixLength; i < siblings.size(); i++) {
+            for (int i = markerLength; i < siblings.size(); i++) {
                 Component part = siblings.get(i);
-                if (i == prefixLength) {
+                if (i == markerLength) {
                     String text = part.getString();
                     if (text.startsWith(" ")) text = text.substring(1);
+                    part = Component.literal(text).setStyle(EnhanceLogic.plainNameStyle());
+                }
+                base.append(part);
+            }
+            return base;
+        }
+        if (siblings.size() == markerLength + 1
+                && siblings.get(siblings.size() - markerLength).getString().equals("+")
+                && node.getString().endsWith(marker)) {
+            MutableComponent base = Component.empty().setStyle(EnhanceLogic.plainNameStyle());
+            int baseCount = siblings.size() - markerLength;
+            for (int i = 0; i < baseCount; i++) {
+                Component part = siblings.get(i);
+                if (i == baseCount - 1) {
+                    String text = part.getString();
+                    while (text.endsWith(" ")) text = text.substring(0, text.length() - 1);
                     part = Component.literal(text).setStyle(EnhanceLogic.plainNameStyle());
                 }
                 base.append(part);
@@ -87,7 +109,7 @@ public final class EnhanceTooltipHandler {
 
         MutableComponent copy = null;
         for (int i = 0; i < siblings.size(); i++) {
-            Component stripped = stripStaticPrefix(siblings.get(i), level);
+            Component stripped = stripStaticLevel(siblings.get(i), level);
             if (stripped != siblings.get(i)) {
                 if (copy == null) {
                     copy = MutableComponent.create(node.getContents()).setStyle(node.getStyle());

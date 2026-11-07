@@ -13,15 +13,15 @@ public final class EnhanceNameFx {
 
     private EnhanceNameFx() {}
 
-    public static MutableComponent buildPrefix(int level, long timeMillis) {
-        MutableComponent prefix = Component.empty().setStyle(EnhanceLogic.baseNameStyle());
+    public static MutableComponent buildLevelText(int level, long timeMillis) {
+        MutableComponent marker = Component.empty().setStyle(EnhanceLogic.baseNameStyle());
         String text = "+" + level;
         for (int i = 0; i < text.length(); i++) {
-            prefix.append(Component.literal(String.valueOf(text.charAt(i)))
+            marker.append(Component.literal(String.valueOf(text.charAt(i)))
                     .setStyle(EnhanceLogic.baseNameStyle()
                             .withColor(TextColor.fromRgb(colorOf(level, i, timeMillis)))));
         }
-        return prefix;
+        return marker;
     }
 
     public static int colorOf(int level, int charIndex, long timeMillis) {

@@ -251,7 +251,7 @@ public final class EnhanceEvents {
         if (repairCost + 1 >= 40 && !event.getPlayer().getAbilities().instabuild) return;
 
         ItemStack output = left.copy();
-        output.setHoverName(EnhanceLogic.buildDisplayName(level, EnhanceLogic.stripPrefix(name)));
+        output.setHoverName(EnhanceLogic.buildDisplayName(level, EnhanceLogic.stripLevelMarker(name)));
         event.setOutput(output);
         event.setCost(repairCost + 1);
         event.setMaterialCost(0);

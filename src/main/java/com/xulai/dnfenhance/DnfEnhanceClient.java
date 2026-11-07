@@ -1,5 +1,6 @@
 package com.xulai.dnfenhance;
 
+import com.xulai.dnfenhance.client.DecomposerScreen;
 import com.xulai.dnfenhance.client.EnhancementScreen;
 import com.xulai.dnfenhance.registry.ModMenus;
 import net.minecraft.client.gui.screens.MenuScreens;
@@ -13,6 +14,9 @@ public class DnfEnhanceClient {
 
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
-        event.enqueueWork(() -> MenuScreens.register(ModMenus.ENHANCEMENT_MENU.get(), EnhancementScreen::new));
+        event.enqueueWork(() -> {
+            MenuScreens.register(ModMenus.ENHANCEMENT_MENU.get(), EnhancementScreen::new);
+            MenuScreens.register(ModMenus.DECOMPOSER_MENU.get(), DecomposerScreen::new);
+        });
     }
 }
