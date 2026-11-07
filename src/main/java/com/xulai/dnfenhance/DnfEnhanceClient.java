@@ -1,5 +1,6 @@
 package com.xulai.dnfenhance;
 
+import com.xulai.dnfenhance.client.DecomposerScreen;
 import com.xulai.dnfenhance.client.EnhancementScreen;
 import com.xulai.dnfenhance.registry.ModMenus;
 import net.neoforged.api.distmarker.Dist;
@@ -15,6 +16,8 @@ public class DnfEnhanceClient {
     public DnfEnhanceClient(IEventBus modEventBus, ModContainer container) {
         modEventBus.addListener((RegisterMenuScreensEvent event) ->
                 event.register(ModMenus.ENHANCEMENT_MENU.get(), EnhancementScreen::new));
+        modEventBus.addListener((RegisterMenuScreensEvent event) ->
+                event.register(ModMenus.DECOMPOSER_MENU.get(), DecomposerScreen::new));
 
         container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
     }

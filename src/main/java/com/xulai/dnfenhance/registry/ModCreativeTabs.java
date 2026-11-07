@@ -21,6 +21,7 @@ public final class ModCreativeTabs {
                     .icon(() -> new ItemStack(ModBlocks.ENHANCEMENT_FURNACE.get()))
                     .displayItems((parameters, output) -> {
                         output.accept(ModBlocks.ENHANCEMENT_FURNACE.get());
+                        output.accept(ModBlocks.DECOMPOSER.get());
                         output.accept(ModItems.FURNACE_CARBON.get());
                         output.accept(ModItems.ADVANCED_CARBON.get());
                         output.accept(ModItems.LUCK_CHARM.get());

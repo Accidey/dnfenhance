@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/orientable",
+  "textures": {
+    "top": "dnfenhance:block/decomposer_top",
+    "front": "dnfenhance:block/decomposer_front_on",
+    "side": "dnfenhance:block/enhancement_furnace_side"
+  }
+}

@@ -1,5 +1,7 @@
 {
   "block.dnfenhance.enhancement_furnace": "强化炉",
+  "block.dnfenhance.decomposer": "分解机",
+  "container.dnfenhance.decomposer": "分解机",
   "item.dnfenhance.furnace_carbon": "炉岩碳",
   "item.dnfenhance.luck_charm": "装备保护石",
   "itemGroup.dnfenhance": "DNF 强化",
@@ -33,6 +35,9 @@
   "dnfenhance.gui.protect_warn": "警告：失败将损毁！请放入保护石",
   "dnfenhance.msg.protected": "装备保护石生效！装备无损，强化等级保留",
   "dnfenhance.configuration.protectionConsume": "保护时消耗保护石",
+  "dnfenhance.configuration.levelNamePosition": "强化等级名称位置",
+  "dnfenhance.configuration.levelNamePosition.left": "左侧（+15 长弓）",
+  "dnfenhance.configuration.levelNamePosition.right": "右侧（长弓 +15）",
   "item.dnfenhance.advanced_furnace_carbon": "高级炉岩碳",
   "dnfenhance.gui.auto_start": "自动强化",
   "dnfenhance.gui.auto_stop": "停止强化",
@@ -106,5 +111,14 @@
   "dnfenhance.configuration.kaiLiMasterTicketRates": "凯莉·强化大师强化券档位权重",
   "dnfenhance.configuration.kaiLiBlackenedTicketRates": "凯莉·黑化强化券档位权重",
   "dnfenhance.configuration.kaiLiMasterTicketCount": "凯莉·强化大师掉落强化券数量",
-  "dnfenhance.configuration.kaiLiBlackenedTicketCount": "凯莉·黑化掉落强化券数量"
+  "dnfenhance.configuration.kaiLiBlackenedTicketCount": "凯莉·黑化掉落强化券数量",
+  "dnfenhance.gui.decompose_hint": "放入需要分解的强化装备",
+  "dnfenhance.gui.decompose_level": "强化等级: +%d",
+  "dnfenhance.gui.decompose_no_output": "强化等级: +%d（无分解产物）",
+  "dnfenhance.gui.decompose_working": "分解中 %d%%",
+  "dnfenhance.gui.decompose_redstone_on": "红石: 已激活",
+  "dnfenhance.gui.decompose_redstone_off": "红石: 未激活",
+  "dnfenhance.gui.decompose_materials": "分解材料",
+  "dnfenhance.gui.decompose_products_title": "分解产物:",
+  "dnfenhance.gui.decompose_no_products": "该等级未配置分解产物"
 }

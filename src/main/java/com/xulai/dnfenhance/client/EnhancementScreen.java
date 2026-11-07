@@ -228,7 +228,10 @@ public class EnhancementScreen extends AbstractContainerScreen<EnhancementMenu> 
         boolean hasProtection = EnhanceLogic.isProtectionCharm(this.menu.getProtectStack());
         boolean advanced = EnhanceLogic.isAdvancedCarbon(this.menu.getCarbonStack());
         double rate = EnhanceLogic.successRate(target)
-                + (advanced ? com.xulai.dnfenhance.enhance.EnhanceConfig.ADVANCED_BONUS.get() : 0.0);
+                + (advanced ? com.xulai.dnfenhance.enhance.EnhanceConfig.ADVANCED_BONUS.get() : 0.0)
+                + (this.menu.getFurnace().hasPityBonus()
+                        && target >= com.xulai.dnfenhance.enhance.EnhanceConfig.PITY_MIN_LEVEL.get()
+                        ? com.xulai.dnfenhance.enhance.EnhanceConfig.FAILURE_BONUS.get() : 0.0);
         if (this.minecraft != null && this.minecraft.player != null
                 && this.minecraft.player.hasEffect(MobEffects.LUCK)) {
             rate += com.xulai.dnfenhance.enhance.EnhanceConfig.LUCK_BONUS.get();

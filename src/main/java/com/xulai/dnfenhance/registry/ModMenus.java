@@ -27,6 +27,17 @@ public final class ModMenus {
                         return null;
                     }));
 
+    public static final DeferredHolder<MenuType<?>, MenuType<com.xulai.dnfenhance.menu.DecomposerMenu>> DECOMPOSER_MENU =
+            MENUS.register("decomposer",
+                    () -> IMenuTypeExtension.create((windowId, inventory, buf) -> {
+                        BlockPos pos = buf.readBlockPos();
+                        var be = inventory.player.level().getBlockEntity(pos);
+                        if (be instanceof com.xulai.dnfenhance.block.DecomposerBlockEntity decomposer) {
+                            return new com.xulai.dnfenhance.menu.DecomposerMenu(windowId, inventory, decomposer, pos);
+                        }
+                        return null;
+                    }));
+
     public static void register(IEventBus modEventBus) {
         MENUS.register(modEventBus);
     }
