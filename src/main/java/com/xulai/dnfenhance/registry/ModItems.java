@@ -16,6 +16,9 @@ public final class ModItems {
     public static final DeferredItem<BlockItem> ENHANCEMENT_FURNACE_ITEM =
             ITEMS.registerSimpleBlockItem("enhancement_furnace", ModBlocks.ENHANCEMENT_FURNACE);
 
+    public static final DeferredItem<BlockItem> DECOMPOSER_ITEM =
+            ITEMS.registerSimpleBlockItem("decomposer", ModBlocks.DECOMPOSER);
+
     public static final DeferredItem<Item> FURNACE_CARBON = ITEMS.registerSimpleItem("furnace_carbon");
 
     public static final DeferredItem<Item> ADVANCED_CARBON = ITEMS.registerSimpleItem("advanced_furnace_carbon");

@@ -1,6 +1,7 @@
 package com.xulai.dnfenhance.registry;
 
 import com.xulai.dnfenhance.DnfEnhanceMod;
+import com.xulai.dnfenhance.block.DecomposerBlock;
 import com.xulai.dnfenhance.block.EnhancementFurnaceBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -23,6 +24,16 @@ public final class ModBlocks {
                     .strength(5.0f, 1200.0f)
                     .requiresCorrectToolForDrops()
                     .lightLevel(state -> state.getValue(EnhancementFurnaceBlock.LIT) ? 13 : 0));
+
+    public static final DeferredBlock<DecomposerBlock> DECOMPOSER = BLOCKS.registerBlock(
+            "decomposer",
+            DecomposerBlock::new,
+            () -> BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.METAL)
+                    .sound(SoundType.METAL)
+                    .strength(5.0f, 1200.0f)
+                    .requiresCorrectToolForDrops()
+                    .lightLevel(state -> state.getValue(DecomposerBlock.LIT) ? 8 : 0));
 
     public static void register(IEventBus modEventBus) {
         BLOCKS.register(modEventBus);

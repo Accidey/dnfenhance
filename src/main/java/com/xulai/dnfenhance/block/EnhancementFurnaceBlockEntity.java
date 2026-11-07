@@ -44,6 +44,7 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
     private int litTimer = 0;
     private UUID autoOwner = null;
     private double kaiLiLuck = 0.0;
+    private boolean pityReady = false;
     private int auraCount = 0;
     private int auraVariant = -1;
 
@@ -148,7 +149,10 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
         }
 
         boolean advanced = EnhanceLogic.isAdvancedCarbon(carbon);
-        double rate = EnhanceLogic.successRate(target) + (advanced ? EnhanceConfig.ADVANCED_BONUS.get() : 0.0);
+        int pityMinLevel = EnhanceConfig.PITY_MIN_LEVEL.get();
+        boolean pityApplies = this.pityReady && target >= pityMinLevel;
+        double rate = EnhanceLogic.successRate(target) + (advanced ? EnhanceConfig.ADVANCED_BONUS.get() : 0.0)
+                + (pityApplies ? EnhanceConfig.FAILURE_BONUS.get() : 0.0);
         ServerPlayer luckHolder = player;
         if (luckHolder == null && this.autoOwner != null && this.level != null && this.level.getServer() != null) {
             luckHolder = this.level.getServer().getPlayerList().getPlayer(this.autoOwner);
@@ -168,6 +172,9 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
         carbon.shrink(cost);
 
         boolean success = (player != null ? player.getRandom() : level.getRandom()).nextDouble() < rate;
+        if (pityApplies) {
+            this.pityReady = false;
+        }
         if (player != null) {
             this.autoCompleted = false;
         }
@@ -260,6 +267,10 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
             }
         }
 
+        if (!success && !pityApplies && !aura.mustFail() && target >= pityMinLevel) {
+            this.pityReady = true;
+        }
+
         this.setChanged();
     }
 
@@ -342,6 +353,10 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
 
     public boolean isAutoCompleted() {
         return this.autoCompleted;
+    }
+
+    public boolean hasPityBonus() {
+        return this.pityReady;
     }
 
     @Override
@@ -466,6 +481,7 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
             output.putLong("AutoOwnerLeast", this.autoOwner.getLeastSignificantBits());
         }
         output.putDouble("KaiLiLuck", this.kaiLiLuck);
+        output.putBoolean("PityReady", this.pityReady);
     }
 
     @Override
@@ -479,6 +495,7 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
         long ownerLeast = input.getLongOr("AutoOwnerLeast", 0L);
         this.autoOwner = (ownerMost != 0L || ownerLeast != 0L) ? new UUID(ownerMost, ownerLeast) : null;
         this.kaiLiLuck = Math.max(0.0, Math.min(1.0, input.getDoubleOr("KaiLiLuck", 0.0)));
+        this.pityReady = input.getBooleanOr("PityReady", false);
     }
 
     @Override

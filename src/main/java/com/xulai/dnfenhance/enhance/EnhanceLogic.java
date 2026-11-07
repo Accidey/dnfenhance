@@ -28,6 +28,7 @@ public final class EnhanceLogic {
     public enum Penalty { NONE, DOWNGRADE, DESTROY }
 
     public static final Pattern ENHANCE_PREFIX = Pattern.compile("^\\+\\d+\\s*");
+    private static final Pattern ENHANCE_SUFFIX = Pattern.compile("\\s*\\+\\d+$");
     private static final Pattern DOWN_PATTERN = Pattern.compile("DOWN_(\\d+)");
 
     public static int getLevel(ItemStack stack) {
@@ -186,6 +187,14 @@ public final class EnhanceLogic {
         return ticketLevel(stack);
     }
 
+    public static boolean levelNameOnRight() {
+        try {
+            return EnhanceConfig.LEVEL_NAME_POSITION.get() == EnhanceConfig.NamePosition.RIGHT;
+        } catch (IllegalStateException ex) {
+            return false;
+        }
+    }
+
     public static int destroyThreshold() {
         List<? extends String> rules = EnhanceConfig.FAILURE_PENALTIES.get();
         for (int i = 0; i < rules.size(); i++) {
@@ -204,7 +213,7 @@ public final class EnhanceLogic {
             stack.remove(DataComponents.RARITY);
             Component customName = stack.get(DataComponents.CUSTOM_NAME);
             if (customName != null) {
-                String stripped = ENHANCE_PREFIX.matcher(customName.getString()).replaceFirst("");
+                String stripped = stripLevelMarker(customName.getString());
                 if (stripped.isEmpty() || stripped.equals(stack.getItem().getName(stack).getString())) {
                     stack.remove(DataComponents.CUSTOM_NAME);
                 } else {
@@ -220,7 +229,7 @@ public final class EnhanceLogic {
         String baseName;
         Component customName = stack.get(DataComponents.CUSTOM_NAME);
         if (customName != null) {
-            baseName = ENHANCE_PREFIX.matcher(customName.getString()).replaceFirst("");
+            baseName = stripLevelMarker(customName.getString());
         } else {
             baseName = stack.getItem().getName(stack).getString();
         }
@@ -255,18 +264,25 @@ public final class EnhanceLogic {
     }
 
     public static MutableComponent buildDisplayName(int level, String baseName) {
+        boolean right = levelNameOnRight();
         MutableComponent name = Component.empty().setStyle(plainNameStyle());
-        String prefix = "+" + level;
-        for (int i = 0; i < prefix.length(); i++) {
-            name.append(Component.literal(String.valueOf(prefix.charAt(i)))
+        if (right) {
+            name.append(Component.literal(baseName + " ").setStyle(plainNameStyle()));
+        }
+        String marker = "+" + level;
+        for (int i = 0; i < marker.length(); i++) {
+            name.append(Component.literal(String.valueOf(marker.charAt(i)))
                     .setStyle(baseNameStyle().withColor(TextColor.fromRgb(prefixColor(level, i)))));
         }
-        name.append(Component.literal(" " + baseName).setStyle(plainNameStyle()));
+        if (!right) {
+            name.append(Component.literal(" " + baseName).setStyle(plainNameStyle()));
+        }
         return name;
     }
 
-    public static String stripPrefix(String displayName) {
-        return ENHANCE_PREFIX.matcher(displayName).replaceFirst("");
+    public static String stripLevelMarker(String displayName) {
+        String stripped = ENHANCE_PREFIX.matcher(displayName).replaceFirst("");
+        return ENHANCE_SUFFIX.matcher(stripped).replaceFirst("");
     }
 
     public static double auraMultiplier(int pigCount) {

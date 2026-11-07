@@ -1,6 +1,7 @@
 package com.xulai.dnfenhance.registry;
 
 import com.xulai.dnfenhance.DnfEnhanceMod;
+import com.xulai.dnfenhance.menu.DecomposerMenu;
 import com.xulai.dnfenhance.menu.EnhancementMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
@@ -23,6 +24,17 @@ public final class ModMenus {
                         var be = inventory.player.level().getBlockEntity(pos);
                         if (be instanceof com.xulai.dnfenhance.block.EnhancementFurnaceBlockEntity furnace) {
                             return new EnhancementMenu(windowId, inventory, furnace, pos);
+                        }
+                        return null;
+                    }));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<DecomposerMenu>> DECOMPOSER_MENU =
+            MENUS.register("decomposer",
+                    () -> IMenuTypeExtension.create((windowId, inventory, buf) -> {
+                        BlockPos pos = buf.readBlockPos();
+                        var be = inventory.player.level().getBlockEntity(pos);
+                        if (be instanceof com.xulai.dnfenhance.block.DecomposerBlockEntity decomposer) {
+                            return new DecomposerMenu(windowId, inventory, decomposer, pos);
                         }
                         return null;
                     }));
