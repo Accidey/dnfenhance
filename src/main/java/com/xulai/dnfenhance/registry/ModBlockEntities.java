@@ -1,6 +1,7 @@
 package com.xulai.dnfenhance.registry;
 
 import com.xulai.dnfenhance.DnfEnhanceMod;
+import com.xulai.dnfenhance.block.DecomposerBlockEntity;
 import com.xulai.dnfenhance.block.EnhancementFurnaceBlockEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -19,6 +20,12 @@ public final class ModBlockEntities {
                     () -> BlockEntityType.Builder.of(
                             EnhancementFurnaceBlockEntity::new,
                             ModBlocks.ENHANCEMENT_FURNACE.get()).build(null));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<DecomposerBlockEntity>> DECOMPOSER =
+            BLOCK_ENTITIES.register("decomposer",
+                    () -> BlockEntityType.Builder.of(
+                            DecomposerBlockEntity::new,
+                            ModBlocks.DECOMPOSER.get()).build(null));
 
     public static void register(IEventBus modEventBus) {
         BLOCK_ENTITIES.register(modEventBus);

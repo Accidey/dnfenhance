@@ -1,11 +1,25 @@
 package com.xulai.dnfenhance.enhance;
 
+import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.common.ModConfigSpec;
+import net.neoforged.neoforge.common.TranslatableEnum;
 
 import java.util.List;
+import java.util.Locale;
 
 public final class EnhanceConfig {
     private EnhanceConfig() {}
+
+    public enum NamePosition implements TranslatableEnum {
+        LEFT,
+        RIGHT;
+
+        @Override
+        public Component getTranslatedName() {
+            return Component.translatable("dnfenhance.configuration.levelNamePosition."
+                    + name().toLowerCase(Locale.ROOT));
+        }
+    }
 
     public static final ModConfigSpec SPEC;
 
@@ -15,9 +29,13 @@ public final class EnhanceConfig {
     public static final ModConfigSpec.ConfigValue<List<? extends Double>> BONUS_PER_LEVELS;
     public static final ModConfigSpec.DoubleValue LUCK_BONUS;
     public static final ModConfigSpec.DoubleValue ADVANCED_BONUS;
+    public static final ModConfigSpec.DoubleValue FAILURE_BONUS;
+    public static final ModConfigSpec.IntValue PITY_MIN_LEVEL;
     public static final ModConfigSpec.DoubleValue MOB_GEAR_CHANCE;
     public static final ModConfigSpec.DoubleValue CARBON_DROP_CHANCE;
     public static final ModConfigSpec.BooleanValue PROTECTION_CONSUME;
+
+    public static final ModConfigSpec.EnumValue<NamePosition> LEVEL_NAME_POSITION;
 
     public static final ModConfigSpec.BooleanValue ENHANCE_MOD_ATTRIBUTES;
     public static final ModConfigSpec.ConfigValue<List<? extends String>> ENHANCE_ATTRIBUTE_BLACKLIST;
@@ -64,6 +82,9 @@ public final class EnhanceConfig {
     public static final ModConfigSpec.ConfigValue<List<? extends Double>> PIG_BLACKENED_TICKET_RATES;
     public static final ModConfigSpec.IntValue PIG_MASTER_TICKET_COUNT;
     public static final ModConfigSpec.IntValue PIG_BLACKENED_TICKET_COUNT;
+
+    public static final ModConfigSpec.IntValue DECOMPOSE_WORK_TICKS;
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> DECOMPOSE_OUTPUTS;
 
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
@@ -131,6 +152,20 @@ public final class EnhanceConfig {
 
         builder.comment(" ");
 
+        FAILURE_BONUS = builder
+                .comment("强化失败后下一次强化的额外成功率：单层，不叠加；享受加成的那次强化结束后保底清空——即使失败也要再无加成地失败一次才能重新获得；凯莉光环的必定失败不触发。0.10 = +10%，0 = 关闭。",
+                        "Extra success rate for the next enhance after a failure: single layer, never stacks; the attempt that consumed the bonus clears it even on failure - one more bare failure is required to rebuild it; Kai'li forced failures do not trigger it. 0.10 = +10%, 0 disables.")
+                .defineInRange("failureBonus", 0.10, 0.0, 1.0);
+
+        builder.comment(" ");
+
+        PITY_MIN_LEVEL = builder
+                .comment("保底生效的最低强化目标等级：冲该等级及以上的强化失败才会累积保底，保底加成也只对冲该等级及以上的强化生效；目标低于该等级时保底挂起（不加成、不消耗）。10 = +10 起。",
+                        "Minimum target level for the pity bonus: failures on attempts targeting this level or above build the pity, and the bonus applies only to attempts targeting this level or above; below it the pity is held (neither applied nor consumed). 10 = from +10.")
+                .defineInRange("pityMinLevel", 10, 1, 99);
+
+        builder.comment(" ");
+
         MOB_GEAR_CHANCE = builder
                 .comment("敌对生物生成时获得随机强化武器/装备的概率。0.15 = 15%。",
                         "Chance for a newly spawned hostile mob to carry random enhanced gear. 0.15 = 15%.")
@@ -149,6 +184,31 @@ public final class EnhanceConfig {
                 .comment("保护生效时是否消耗 1 个保护石。",
                         "Whether one protection stone is consumed when the protection triggers.")
                 .define("protectionConsume", true);
+
+        builder.comment(" ",
+                "############################################################",
+                "#  强化等级显示 / Enhance Level Display",
+                "#",
+                "#  「+X」在物品名中的位置：",
+                "#    LEFT  = 名称左侧（+15 长弓）",
+                "#    RIGHT = 名称右侧（长弓 +15）",
+                "#  同时作用于强化装备与强化券的名称。",
+                "#",
+                "#  Where \"+X\" appears in item names:",
+                "#    LEFT  = before the name (+15 Bow)",
+                "#    RIGHT = after the name (Bow +15)",
+                "#  Applies to enhanced gear and enhance tickets.",
+                "############################################################");
+
+        LEVEL_NAME_POSITION = builder
+                .comment("强化等级名称位置",
+                        "Enhance level name position",
+                        "「+X」在物品名中的位置：LEFT = 名称左侧（+15 长弓），RIGHT = 名称右侧（长弓 +15）。",
+                        "同时作用于强化装备与强化券。",
+                        "Where \"+X\" appears in item names: LEFT = before the name (+15 Bow), RIGHT = after the name (Bow +15).",
+                        "Applies to enhanced gear and enhance tickets.",
+                        "Default: LEFT / 默认：LEFT")
+                .defineEnum("levelNamePosition", NamePosition.LEFT);
 
         builder.comment(" ",
                 "############################################################",
@@ -517,6 +577,56 @@ public final class EnhanceConfig {
                 .comment("击杀「凯莉·黑化」掉落的强化券数量（每张的档位按上方权重随机决定）。",
                         "Number of tickets dropped by a killed Darkened Kai'li (each ticket picks its tier by the weights above).")
                 .defineInRange("kaiLiBlackenedTicketCount", 3, 0, 64);
+
+        builder.comment(" ",
+                "############################################################",
+                "#  分解机 / Decomposer",
+                "#",
+                "#  红石供能的分解机：分解强化装备，返还下方配置的物品。",
+                "#  顶部漏斗放入装备、底部漏斗吸取产物，GUI 内一行暂存格缓冲产物。",
+                "#",
+                "#  The redstone-powered decomposer breaks down enhanced gear",
+                "#  and returns the items configured below. Feed gear from the top",
+                "#  with a hopper, extract outputs from the bottom.",
+                "############################################################");
+
+        DECOMPOSE_WORK_TICKS = builder
+                .comment("分解一件装备所需的时间（tick）。200 = 10 秒。",
+                        "Time (ticks) needed to decompose one piece of equipment. 200 = 10 seconds.")
+                .defineInRange("workTicks", 200, 20, 24000);
+
+        builder.comment(" ");
+
+        DECOMPOSE_OUTPUTS = builder
+                .comment("每个强化等级的分解产物。第 1 项 = +0（未强化），第 2 项 = +1，以此类推；超出列表长度的等级无法分解。",
+                        "Decompose outputs per enhance level. Entry 1 = +0 (unenhanced), entry 2 = +1, and so on;",
+                        "levels beyond the list length cannot be decomposed.",
+                        "每项格式：\"物品ID*数量\"，多个产物用英文分号分隔，例如 \"minecraft:iron_ingot*3;dnfenhance:furnace_carbon*2\"。",
+                        "数量省略时默认为 1。留空字符串 = 该等级装备不可分解。",
+                        "Entry format: \"itemId*count\", several outputs separated by ';',",
+                        "e.g. \"minecraft:iron_ingot*3;dnfenhance:furnace_carbon*2\". Count defaults to 1.",
+                        "An empty string means that level cannot be decomposed.",
+                        "默认：+0~+10 返还炉岩碳（1~10 个），+11~+15 返还高级炉岩碳。",
+                        "Default: +0 to +10 return Furnace Carbon (1-10), +11 to +15 return Advanced Furnace Carbon.")
+                .defineList("outputs",
+                        List.of(
+                                "dnfenhance:furnace_carbon*1",
+                                "dnfenhance:furnace_carbon*1",
+                                "dnfenhance:furnace_carbon*2",
+                                "dnfenhance:furnace_carbon*3",
+                                "dnfenhance:furnace_carbon*4",
+                                "dnfenhance:furnace_carbon*5",
+                                "dnfenhance:furnace_carbon*6",
+                                "dnfenhance:furnace_carbon*7",
+                                "dnfenhance:furnace_carbon*8",
+                                "dnfenhance:furnace_carbon*9",
+                                "dnfenhance:furnace_carbon*10",
+                                "dnfenhance:advanced_furnace_carbon*2",
+                                "dnfenhance:advanced_furnace_carbon*3",
+                                "dnfenhance:advanced_furnace_carbon*5",
+                                "dnfenhance:advanced_furnace_carbon*7",
+                                "dnfenhance:advanced_furnace_carbon*10"),
+                        o -> o instanceof String);
 
         SPEC = builder.build();
     }

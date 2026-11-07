@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "ISI",
+    "SGS",
+    "ISI"
+  ],
+  "key": {
+    "I": { "item": "minecraft:iron_ingot" },
+    "S": { "item": "minecraft:stone" },
+    "G": { "item": "minecraft:grindstone" }
+  },
+  "result": {
+    "count": 1,
+    "id": "dnfenhance:decomposer"
+  }
+}

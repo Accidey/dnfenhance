@@ -254,7 +254,7 @@ public final class EnhanceEvents {
 
         ItemStack output = left.copy();
         output.set(DataComponents.CUSTOM_NAME,
-                EnhanceLogic.buildDisplayName(level, EnhanceLogic.stripPrefix(name)));
+                EnhanceLogic.buildDisplayName(level, EnhanceLogic.stripLevelMarker(name)));
         event.setOutput(output);
         event.setCost(repairCost + 1L);
         event.setMaterialCost(0);

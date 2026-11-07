@@ -42,6 +42,7 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
     private int litTimer = 0;
     private UUID autoOwner = null;
     private double kaiLiLuck = 0.0;
+    private boolean pityReady = false;
 
     public EnhancementFurnaceBlockEntity(BlockPos pos, BlockState state) {
         super(com.xulai.dnfenhance.registry.ModBlockEntities.ENHANCEMENT_FURNACE.get(), pos, state);
@@ -141,7 +142,10 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
         }
 
         boolean advanced = EnhanceLogic.isAdvancedCarbon(carbon);
-        double rate = EnhanceLogic.successRate(target) + (advanced ? EnhanceConfig.ADVANCED_BONUS.get() : 0.0);
+        int pityMinLevel = EnhanceConfig.PITY_MIN_LEVEL.get();
+        boolean pityApplies = this.pityReady && target >= pityMinLevel;
+        double rate = EnhanceLogic.successRate(target) + (advanced ? EnhanceConfig.ADVANCED_BONUS.get() : 0.0)
+                + (pityApplies ? EnhanceConfig.FAILURE_BONUS.get() : 0.0);
         ServerPlayer luckHolder = player;
         if (luckHolder == null && this.autoOwner != null && this.level != null && this.level.getServer() != null) {
             luckHolder = this.level.getServer().getPlayerList().getPlayer(this.autoOwner);
@@ -161,6 +165,9 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
         carbon.shrink(cost);
 
         boolean success = (player != null ? player.getRandom() : level.random).nextDouble() < rate;
+        if (pityApplies) {
+            this.pityReady = false;
+        }
         if (player != null) {
             this.autoCompleted = false;
         }
@@ -253,6 +260,10 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
             }
         }
 
+        if (!success && !pityApplies && !aura.mustFail() && target >= pityMinLevel) {
+            this.pityReady = true;
+        }
+
         this.setChanged();
     }
 
@@ -327,6 +338,10 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
 
     public boolean isAutoCompleted() {
         return this.autoCompleted;
+    }
+
+    public boolean hasPityBonus() {
+        return this.pityReady;
     }
 
     @Override
@@ -450,6 +465,7 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
             tag.putUUID("AutoOwner", this.autoOwner);
         }
         tag.putDouble("KaiLiLuck", this.kaiLiLuck);
+        tag.putBoolean("PityReady", this.pityReady);
     }
 
     @Override
@@ -461,6 +477,7 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
         this.autoCompleted = tag.getBoolean("AutoCompleted");
         this.autoOwner = tag.hasUUID("AutoOwner") ? tag.getUUID("AutoOwner") : null;
         this.kaiLiLuck = Math.max(0.0, Math.min(1.0, tag.getDouble("KaiLiLuck")));
+        this.pityReady = tag.getBoolean("PityReady");
     }
 
     @Override
@@ -495,6 +512,7 @@ public class EnhancementFurnaceBlockEntity extends BaseContainerBlockEntity impl
         ContainerHelper.saveAllItems(tag, this.items, registries);
         tag.putInt("AutoTarget", this.autoTarget);
         tag.putBoolean("AutoCompleted", this.autoCompleted);
+        tag.putBoolean("PityReady", this.pityReady);
         return tag;
     }
 }
