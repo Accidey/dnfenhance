@@ -120,5 +120,15 @@
   "dnfenhance.gui.decompose_redstone_off": "红石: 未激活",
   "dnfenhance.gui.decompose_materials": "分解材料",
   "dnfenhance.gui.decompose_products_title": "分解产物:",
-  "dnfenhance.gui.decompose_no_products": "该等级未配置分解产物"
+  "dnfenhance.gui.decompose_no_products": "该等级未配置分解产物",
+  "dnfenhance.configuration.mobGearBlacklist": "生物强化装备黑名单",
+  "dnfenhance.command.mobBlacklist.onlyPlayer": "该命令只能由玩家在游戏内执行",
+  "dnfenhance.command.mobBlacklist.needEgg": "请先在主手持有生物蛋",
+  "dnfenhance.command.mobBlacklist.added": "已将 %s 加入生物强化装备黑名单",
+  "dnfenhance.command.mobBlacklist.already": "%s 已在生物强化装备黑名单中",
+  "dnfenhance.command.mobBlacklist.removed": "已将 %s 移出生物强化装备黑名单",
+  "dnfenhance.command.mobBlacklist.notFound": "%s 不在生物强化装备黑名单中",
+  "dnfenhance.command.mobBlacklist.header": "—— 生物强化装备黑名单（点击复制）——",
+  "dnfenhance.command.mobBlacklist.empty": "生物强化装备黑名单为空",
+  "dnfenhance.command.mobBlacklist.copyHint": "点击复制 %s"
 }

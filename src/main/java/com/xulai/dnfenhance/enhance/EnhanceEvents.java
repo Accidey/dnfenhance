@@ -100,6 +100,7 @@ public final class EnhanceEvents {
     public static void onFinalizeSpawn(FinalizeSpawnEvent event) {
         if (event.getLevel().isClientSide()) return;
         if (!(event.getEntity() instanceof Monster monster)) return;
+        if (EnhanceLogic.isMobBlacklisted(monster.getType())) return;
         if (event.getSpawnType() == EntitySpawnReason.SPAWNER) return;
 
         RandomSource random = event.getEntity().getRandom();

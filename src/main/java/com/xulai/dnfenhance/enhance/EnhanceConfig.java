@@ -32,6 +32,7 @@ public final class EnhanceConfig {
     public static final ModConfigSpec.DoubleValue FAILURE_BONUS;
     public static final ModConfigSpec.IntValue PITY_MIN_LEVEL;
     public static final ModConfigSpec.DoubleValue MOB_GEAR_CHANCE;
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> MOB_GEAR_BLACKLIST;
     public static final ModConfigSpec.DoubleValue CARBON_DROP_CHANCE;
     public static final ModConfigSpec.BooleanValue PROTECTION_CONSUME;
 
@@ -170,6 +171,20 @@ public final class EnhanceConfig {
                 .comment("敌对生物生成时获得随机强化武器/装备的概率。0.15 = 15%。",
                         "Chance for a newly spawned hostile mob to carry random enhanced gear. 0.15 = 15%.")
                 .defineInRange("mobGearChance", 0.15, 0.0, 1.0);
+
+        builder.comment(" ");
+
+        MOB_GEAR_BLACKLIST = builder
+                .comment("生物强化装备黑名单",
+                        "Mob enhanced gear blacklist",
+                        "黑名单内的敌对生物生成时不会获得随机强化武器/装备。填写完整实体注册 ID，例如 minecraft:zombie。",
+                        "手持生物蛋使用命令 /dnfenhance mobBlacklist add|remove 快速添加或移除，/dnfenhance mobBlacklist list 查看当前名单。",
+                        "Hostile mobs in this list never spawn with random enhanced gear. Use full entity ids, e.g. minecraft:zombie.",
+                        "Hold a spawn egg and use /dnfenhance mobBlacklist add|remove to edit quickly, or /dnfenhance mobBlacklist list to view.",
+                        "Default: [minecraft:ghast, minecraft:creeper, minecraft:wither, minecraft:ender_dragon] / 默认：[minecraft:ghast, minecraft:creeper, minecraft:wither, minecraft:ender_dragon]")
+                .defineListAllowEmpty("mobGearBlacklist",
+                        List.of("minecraft:ghast", "minecraft:creeper", "minecraft:wither", "minecraft:ender_dragon"),
+                        o -> o instanceof String);
 
         builder.comment(" ");
 
