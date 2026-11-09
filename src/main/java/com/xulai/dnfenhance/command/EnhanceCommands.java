@@ -3,24 +3,30 @@ package com.xulai.dnfenhance.command;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.xulai.dnfenhance.DnfEnhanceMod;
+import com.xulai.dnfenhance.enhance.EnhanceConfig;
 import com.xulai.dnfenhance.enhance.EnhanceLogic;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.Style;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -37,7 +43,15 @@ public final class EnhanceCommands {
                                 .executes(ctx -> enhanceHeld(
                                         ctx.getSource(), IntegerArgumentType.getInteger(ctx, "level")))))
                 .then(Commands.literal("attributes")
-                        .executes(ctx -> listAttributes(ctx.getSource()))));
+                        .executes(ctx -> listAttributes(ctx.getSource())))
+                .then(Commands.literal("mobBlacklist")
+                        .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                        .then(Commands.literal("add")
+                                .executes(ctx -> blacklistMutate(ctx.getSource(), true)))
+                        .then(Commands.literal("remove")
+                                .executes(ctx -> blacklistMutate(ctx.getSource(), false)))
+                        .then(Commands.literal("list")
+                                .executes(ctx -> blacklistList(ctx.getSource())))));
     }
 
     private static int enhanceHeld(CommandSourceStack source, int requested) {
@@ -124,6 +138,69 @@ public final class EnhanceCommands {
                     .withHoverEvent(new HoverEvent.ShowText(
                             Component.literal("点击复制 " + id)))));
             player.sendSystemMessage(Component.empty());
+        }
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int blacklistMutate(CommandSourceStack source, boolean add) {
+        ServerPlayer player = source.getPlayer();
+        if (player == null) {
+            source.sendFailure(Component.translatable("dnfenhance.command.mobBlacklist.onlyPlayer"));
+            return 0;
+        }
+        ItemStack stack = player.getMainHandItem();
+        EntityType<?> type = SpawnEggItem.getType(stack);
+        if (type == null) {
+            source.sendFailure(Component.translatable("dnfenhance.command.mobBlacklist.needEgg"));
+            return 0;
+        }
+        Identifier loc = BuiltInRegistries.ENTITY_TYPE.getKey(type);
+        if (loc == null) {
+            source.sendFailure(Component.translatable("dnfenhance.command.mobBlacklist.needEgg"));
+            return 0;
+        }
+        String id = loc.toString();
+        List<String> entries = new ArrayList<>();
+        for (String raw : EnhanceConfig.MOB_GEAR_BLACKLIST.get()) {
+            if (raw != null && !raw.isBlank()) entries.add(raw.trim());
+        }
+        if (add) {
+            if (entries.contains(id)) {
+                source.sendFailure(Component.translatable("dnfenhance.command.mobBlacklist.already", id));
+                return 0;
+            }
+            entries.add(id);
+        } else {
+            if (!entries.remove(id)) {
+                source.sendFailure(Component.translatable("dnfenhance.command.mobBlacklist.notFound", id));
+                return 0;
+            }
+        }
+        EnhanceConfig.MOB_GEAR_BLACKLIST.set(entries);
+        EnhanceConfig.SPEC.save();
+        String finalId = id;
+        if (add) {
+            source.sendSuccess(() -> Component.translatable("dnfenhance.command.mobBlacklist.added", finalId), true);
+        } else {
+            source.sendSuccess(() -> Component.translatable("dnfenhance.command.mobBlacklist.removed", finalId), true);
+        }
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int blacklistList(CommandSourceStack source) {
+        List<? extends String> entries = EnhanceConfig.MOB_GEAR_BLACKLIST.get();
+        if (entries.isEmpty()) {
+            source.sendSuccess(() -> Component.translatable("dnfenhance.command.mobBlacklist.empty")
+                    .withStyle(ChatFormatting.GRAY), false);
+            return Command.SINGLE_SUCCESS;
+        }
+        source.sendSuccess(() -> Component.translatable("dnfenhance.command.mobBlacklist.header")
+                .withStyle(ChatFormatting.GOLD), false);
+        for (String entry : entries) {
+            source.sendSuccess(() -> Component.literal(entry).withStyle(Style.EMPTY
+                    .withClickEvent(new ClickEvent.CopyToClipboard(entry))
+                    .withHoverEvent(new HoverEvent.ShowText(
+                            Component.translatable("dnfenhance.command.mobBlacklist.copyHint", entry)))), false);
         }
         return Command.SINGLE_SUCCESS;
     }
