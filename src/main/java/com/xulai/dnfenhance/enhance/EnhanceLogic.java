@@ -8,6 +8,7 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -66,6 +67,17 @@ public final class EnhanceLogic {
             if (raw == null || raw.isBlank()) continue;
             String entry = raw.trim();
             if (id.equalsIgnoreCase(entry) || path.equalsIgnoreCase(entry)) return true;
+        }
+        return false;
+    }
+
+    public static boolean isMobBlacklisted(EntityType<?> type) {
+        ResourceLocation loc = ForgeRegistries.ENTITY_TYPES.getKey(type);
+        if (loc == null) return false;
+        String id = loc.toString();
+        for (String raw : EnhanceConfig.MOB_GEAR_BLACKLIST.get()) {
+            if (raw == null || raw.isBlank()) continue;
+            if (id.equals(raw.trim())) return true;
         }
         return false;
     }

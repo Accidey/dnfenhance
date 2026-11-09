@@ -120,5 +120,15 @@
   "dnfenhance.configuration.kaiLiMasterTicketRates": "Enhance Master ticket tier weights",
   "dnfenhance.configuration.kaiLiBlackenedTicketRates": "Darkened Kai'li ticket tier weights",
   "dnfenhance.configuration.kaiLiMasterTicketCount": "Enhance Master ticket drop count",
-  "dnfenhance.configuration.kaiLiBlackenedTicketCount": "Darkened Kai'li ticket drop count"
+  "dnfenhance.configuration.kaiLiBlackenedTicketCount": "Darkened Kai'li ticket drop count",
+  "dnfenhance.configuration.mobGearBlacklist": "Mob enhanced gear blacklist",
+  "dnfenhance.command.mobBlacklist.onlyPlayer": "This command can only be used by a player in game",
+  "dnfenhance.command.mobBlacklist.needEgg": "Hold a spawn egg in your main hand first",
+  "dnfenhance.command.mobBlacklist.added": "Added %s to the mob enhanced gear blacklist",
+  "dnfenhance.command.mobBlacklist.already": "%s is already in the mob enhanced gear blacklist",
+  "dnfenhance.command.mobBlacklist.removed": "Removed %s from the mob enhanced gear blacklist",
+  "dnfenhance.command.mobBlacklist.notFound": "%s is not in the mob enhanced gear blacklist",
+  "dnfenhance.command.mobBlacklist.header": "---- Mob enhanced gear blacklist (click to copy) ----",
+  "dnfenhance.command.mobBlacklist.empty": "The mob enhanced gear blacklist is empty",
+  "dnfenhance.command.mobBlacklist.copyHint": "Click to copy %s"
 }
