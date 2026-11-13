@@ -81,6 +81,82 @@ public final class EnhanceLogic {
         return false;
     }
 
+    public enum ItemFilterMode { BLACKLIST, WHITELIST, CONFLICT, NONE }
+
+    public static ItemFilterMode itemFilterMode() {
+        boolean hasBlack = !EnhanceConfig.MOB_ITEM_BLACKLIST.get().isEmpty();
+        boolean hasWhite = !EnhanceConfig.MOB_ITEM_WHITELIST.get().isEmpty();
+        if (hasBlack && hasWhite) return ItemFilterMode.CONFLICT;
+        if (hasBlack) return ItemFilterMode.BLACKLIST;
+        if (hasWhite) return ItemFilterMode.WHITELIST;
+        return ItemFilterMode.NONE;
+    }
+
+    public static boolean isValidItemEntry(String entry) {
+        return splitItemEntry(entry) != null;
+    }
+
+    private static String[] splitItemEntry(String entry) {
+        if (entry == null) return null;
+        String pattern = entry.trim().toLowerCase(Locale.ROOT);
+        if (pattern.isEmpty()) return null;
+        String ns;
+        String path;
+        int colon = pattern.indexOf(':');
+        if (colon >= 0) {
+            ns = pattern.substring(0, colon);
+            path = pattern.substring(colon + 1);
+        } else {
+            if (!pattern.endsWith("*")) return null;
+            ns = "minecraft";
+            path = pattern;
+        }
+        if (path.isEmpty() || path.indexOf('*', 1) >= 0) return null;
+        if (!ns.equals("*") && (ns.isEmpty() || ns.indexOf('*') >= 0)) return null;
+        return new String[]{ns, path};
+    }
+
+    public static boolean itemEntryMatches(String entry, ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        Identifier loc = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        return loc != null && itemEntryMatches(entry, loc);
+    }
+
+    public static boolean itemEntryMatches(String entry, Identifier loc) {
+        String[] parts = splitItemEntry(entry);
+        if (parts == null) return false;
+        String ns = parts[0];
+        String path = parts[1];
+        if (!ns.equals("*") && !loc.getNamespace().equals(ns)) return false;
+        if (path.endsWith("*")) {
+            return loc.getPath().startsWith(path.substring(0, path.length() - 1));
+        }
+        return loc.getPath().equals(path);
+    }
+
+    public static boolean isItemAllowed(ItemStack stack) {
+        if (stack.isEmpty()) return true;
+        Identifier loc = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        if (loc == null) return true;
+        List<? extends String> blacklist = EnhanceConfig.MOB_ITEM_BLACKLIST.get();
+        List<? extends String> whitelist = EnhanceConfig.MOB_ITEM_WHITELIST.get();
+        boolean hasBlack = !blacklist.isEmpty();
+        boolean hasWhite = !whitelist.isEmpty();
+        if (hasBlack && hasWhite) return true;
+        if (hasWhite) {
+            for (String raw : whitelist) {
+                if (itemEntryMatches(raw, loc)) return true;
+            }
+            return false;
+        }
+        if (hasBlack) {
+            for (String raw : blacklist) {
+                if (itemEntryMatches(raw, loc)) return false;
+            }
+        }
+        return true;
+    }
+
     public static boolean isEnhanceable(Holder<Attribute> attribute) {
         if (attribute == null) return false;
         if (isAttributeBlacklisted(attribute)) return false;
