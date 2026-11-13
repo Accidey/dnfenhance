@@ -15,13 +15,15 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.animal.Pig;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Monster;
+import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ProjectileWeaponItem;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraftforge.event.AnvilUpdateEvent;
 import net.minecraftforge.event.TickEvent;
@@ -29,12 +31,13 @@ import net.minecraftforge.event.ItemAttributeModifierEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
-import net.minecraftforge.event.entity.living.MobSpawnEvent;
 import net.minecraftforge.event.level.ExplosionEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.registries.ForgeRegistries;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -91,48 +94,100 @@ public final class EnhanceEvents {
         arrow.setBaseDamage(arrow.getBaseDamage() * multiplier);
     }
 
-    private static final List<Item> WEAPONS = List.of(
-            Items.WOODEN_SWORD, Items.STONE_SWORD, Items.IRON_SWORD, Items.DIAMOND_SWORD, Items.NETHERITE_SWORD,
-            Items.IRON_AXE, Items.DIAMOND_AXE);
-    private static final Item[][] ARMOR_SLOTS = {
-            { Items.LEATHER_HELMET, Items.CHAINMAIL_HELMET, Items.IRON_HELMET, Items.DIAMOND_HELMET },
-            { Items.LEATHER_CHESTPLATE, Items.CHAINMAIL_CHESTPLATE, Items.IRON_CHESTPLATE, Items.DIAMOND_CHESTPLATE },
-            { Items.LEATHER_LEGGINGS, Items.CHAINMAIL_LEGGINGS, Items.IRON_LEGGINGS, Items.DIAMOND_LEGGINGS },
-            { Items.LEATHER_BOOTS, Items.CHAINMAIL_BOOTS, Items.IRON_BOOTS, Items.DIAMOND_BOOTS }
+    private static final EquipmentSlot[] GEAR_SLOTS = {
+            EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND,
+            EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET
     };
+    private static final String MOB_GEAR_DONE = "DnfEnhance_MobGearDone";
 
     @SubscribeEvent
-    public static void onFinalizeSpawn(MobSpawnEvent.FinalizeSpawn event) {
+    public static void onMobGearJoinLevel(EntityJoinLevelEvent event) {
         if (event.getLevel().isClientSide()) return;
+        if (event.loadedFromDisk()) return;
         if (!(event.getEntity() instanceof Monster monster)) return;
+        if (monster.getPersistentData().getBoolean(MOB_GEAR_DONE)) return;
+        if (monster.getSpawnType() == null || monster.getSpawnType() == MobSpawnType.SPAWNER) return;
         if (EnhanceLogic.isMobBlacklisted(monster.getType())) return;
-        if (event.getSpawnType() == MobSpawnType.SPAWNER) return;
 
-        RandomSource random = event.getEntity().getRandom();
-        if (random.nextFloat() >= EnhanceConfig.MOB_GEAR_CHANCE.get().floatValue()) return;
+        RandomSource random = monster.getRandom();
+        boolean hit = random.nextFloat() < EnhanceConfig.MOB_GEAR_CHANCE.get().floatValue();
+        monster.getPersistentData().putBoolean(MOB_GEAR_DONE, true);
+        if (!hit) return;
 
-        int level = 1 + (int) (random.nextFloat() * random.nextFloat() * 9.99f);
-
-        if (random.nextBoolean()) {
-            Item weapon = WEAPONS.get(Math.min(WEAPONS.size() - 1, (level - 1) * WEAPONS.size() / 10
-                    + random.nextInt(2)));
-            ItemStack stack = new ItemStack(weapon);
-            EnhanceLogic.applyLevel(stack, level);
-            monster.setItemSlot(EquipmentSlot.MAINHAND, stack);
-            monster.setGuaranteedDrop(EquipmentSlot.MAINHAND);
-        } else {
-            int piece = random.nextInt(ARMOR_SLOTS.length);
-            Item[] materials = ARMOR_SLOTS[piece];
-            Item armor = materials[Math.min(materials.length - 1, level * materials.length / 11
-                    + (random.nextBoolean() ? 0 : 1))];
-            ItemStack stack = new ItemStack(armor);
-            EquipmentSlot slot = monster.getEquipmentSlotForItem(stack);
-            if (slot == EquipmentSlot.OFFHAND || slot == EquipmentSlot.MAINHAND) return;
-            if (!monster.getItemBySlot(slot).isEmpty()) return;
-            EnhanceLogic.applyLevel(stack, level);
-            monster.setItemSlot(slot, stack);
-            monster.setGuaranteedDrop(slot);
+        List<EquipmentSlot> occupied = new ArrayList<>();
+        for (EquipmentSlot slot : GEAR_SLOTS) {
+            if (!monster.getItemBySlot(slot).isEmpty()) occupied.add(slot);
         }
+
+        if (occupied.isEmpty()) {
+            giveRandomEnhancedGear(monster, random);
+            return;
+        }
+
+        ItemStack guaranteed = null;
+        for (EquipmentSlot slot : GEAR_SLOTS) {
+            ItemStack stack = monster.getItemBySlot(slot);
+            if (stack.isEmpty() || !EnhanceLogic.isItemAllowed(stack)) continue;
+            if (guaranteed == null) guaranteed = stack;
+            if (random.nextBoolean()) {
+                EnhanceLogic.applyLevel(stack, randomMobEnhanceLevel(random));
+            }
+        }
+        if (guaranteed != null && EnhanceLogic.getLevel(guaranteed) == 0) {
+            EnhanceLogic.applyLevel(guaranteed, randomMobEnhanceLevel(random));
+        }
+    }
+
+    private static int randomMobEnhanceLevel(RandomSource random) {
+        int max = Math.min(15, EnhanceLogic.maxLevel());
+        if (max <= 10) return 1 + random.nextInt(max);
+        if (random.nextFloat() < 0.8f) return 1 + random.nextInt(10);
+        return 11 + random.nextInt(max - 10);
+    }
+
+    private static final EquipmentSlot[] GIVE_SLOTS = {
+            EquipmentSlot.MAINHAND, EquipmentSlot.HEAD,
+            EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET
+    };
+
+    private static void giveRandomEnhancedGear(Monster monster, RandomSource random) {
+        boolean piglin = monster instanceof Piglin;
+        List<Item> pool = new ArrayList<>();
+        for (Item item : MobGearPool.gearPool()) {
+            if (piglin && !MobGearPool.isGolden(item)) continue;
+            ItemStack candidate = new ItemStack(item);
+            if (EnhanceLogic.isItemAllowed(candidate)) pool.add(item);
+        }
+        if (pool.isEmpty()) return;
+        boolean gave = false;
+        for (EquipmentSlot slot : GIVE_SLOTS) {
+            if (random.nextBoolean()) {
+                gave |= giveEnhancedGear(monster, random, pool, slot);
+            }
+        }
+        if (!gave) giveEnhancedGear(monster, random, pool, EquipmentSlot.MAINHAND);
+    }
+
+    private static boolean giveEnhancedGear(Monster monster, RandomSource random, List<Item> pool,
+            EquipmentSlot target) {
+        if (!monster.getItemBySlot(target).isEmpty()) return false;
+        for (int attempt = 0; attempt < 8; attempt++) {
+            ItemStack stack = new ItemStack(pool.get(random.nextInt(pool.size())));
+            if (monster.getEquipmentSlotForItem(stack) != target) continue;
+            EnhanceLogic.applyLevel(stack, randomMobEnhanceLevel(random));
+            monster.setItemSlot(target, stack);
+            monster.setGuaranteedDrop(target);
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean hasElementalEnchantment(ItemStack stack) {
+        for (Enchantment ench : EnchantmentHelper.getEnchantments(stack).keySet()) {
+            ResourceLocation id = ForgeRegistries.ENCHANTMENTS.getKey(ench);
+            if (id != null && id.getNamespace().equals("elementalcraft")) return true;
+        }
+        return false;
     }
 
     @SubscribeEvent
@@ -159,9 +214,12 @@ public final class EnhanceEvents {
             ItemStack gear = monster.getItemBySlot(slot);
             if (!gear.isEmpty() && EnhanceLogic.getLevel(gear) > 0) {
                 carriedEnhancedGear = true;
+                if (hasElementalEnchantment(gear)) continue;
                 monster.setItemSlot(slot, ItemStack.EMPTY);
-                level.addFreshEntity(new ItemEntity(level,
-                        monster.getX(), monster.getY() + 0.4, monster.getZ(), gear));
+                if (EnhanceConfig.MOB_ENHANCED_GEAR_DROP.get()) {
+                    level.addFreshEntity(new ItemEntity(level,
+                            monster.getX(), monster.getY() + 0.4, monster.getZ(), gear));
+                }
             }
         }
 
