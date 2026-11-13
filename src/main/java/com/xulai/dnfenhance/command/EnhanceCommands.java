@@ -2,6 +2,8 @@ package com.xulai.dnfenhance.command;
 
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.xulai.dnfenhance.DnfEnhanceMod;
 import com.xulai.dnfenhance.enhance.EnhanceConfig;
 import com.xulai.dnfenhance.enhance.EnhanceLogic;
@@ -43,6 +45,7 @@ public final class EnhanceCommands {
                                 .executes(ctx -> enhanceHeld(
                                         ctx.getSource(), IntegerArgumentType.getInteger(ctx, "level")))))
                 .then(Commands.literal("attributes")
+                        .requires(source -> source.hasPermission(2))
                         .executes(ctx -> listAttributes(ctx.getSource())))
                 .then(Commands.literal("mobBlacklist")
                         .requires(source -> source.hasPermission(2))
@@ -51,7 +54,26 @@ public final class EnhanceCommands {
                         .then(Commands.literal("remove")
                                 .executes(ctx -> blacklistMutate(ctx.getSource(), false)))
                         .then(Commands.literal("list")
-                                .executes(ctx -> blacklistList(ctx.getSource())))));
+                                .executes(ctx -> blacklistList(ctx.getSource()))))
+                .then(itemFilterBranch("itemBlacklist", false))
+                .then(itemFilterBranch("itemWhitelist", true)));
+    }
+
+    private static LiteralArgumentBuilder<CommandSourceStack> itemFilterBranch(String name, boolean whitelist) {
+        return Commands.literal(name)
+                .requires(source -> source.hasPermission(2))
+                .then(Commands.literal("add")
+                        .executes(ctx -> itemFilterMutate(ctx.getSource(), whitelist, true, null))
+                        .then(Commands.argument("pattern", StringArgumentType.word())
+                                .executes(ctx -> itemFilterMutate(ctx.getSource(), whitelist, true,
+                                        StringArgumentType.getString(ctx, "pattern")))))
+                .then(Commands.literal("remove")
+                        .executes(ctx -> itemFilterMutate(ctx.getSource(), whitelist, false, null))
+                        .then(Commands.argument("pattern", StringArgumentType.word())
+                                .executes(ctx -> itemFilterMutate(ctx.getSource(), whitelist, false,
+                                        StringArgumentType.getString(ctx, "pattern")))))
+                .then(Commands.literal("list")
+                        .executes(ctx -> itemFilterList(ctx.getSource(), whitelist)));
     }
 
     private static int enhanceHeld(CommandSourceStack source, int requested) {
@@ -195,6 +217,137 @@ public final class EnhanceCommands {
             return Command.SINGLE_SUCCESS;
         }
         source.sendSuccess(() -> Component.translatable("dnfenhance.command.mobBlacklist.header")
+                .withStyle(ChatFormatting.GOLD), false);
+        for (String entry : entries) {
+            source.sendSuccess(() -> Component.literal(entry).withStyle(Style.EMPTY
+                    .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, entry))
+                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                            Component.translatable("dnfenhance.command.mobBlacklist.copyHint", entry)))), false);
+        }
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static List<String> itemFilterEntries(boolean whitelist) {
+        List<String> entries = new ArrayList<>();
+        List<? extends String> configEntries = whitelist
+                ? EnhanceConfig.MOB_ITEM_WHITELIST.get()
+                : EnhanceConfig.MOB_ITEM_BLACKLIST.get();
+        for (String raw : configEntries) {
+            if (raw != null && !raw.isBlank()) entries.add(raw.trim());
+        }
+        return entries;
+    }
+
+    private static Component listName(boolean whitelist) {
+        return Component.translatable(whitelist
+                ? "dnfenhance.command.itemFilter.listName.whitelist"
+                : "dnfenhance.command.itemFilter.listName.blacklist");
+    }
+
+    private static void saveItemFilter(boolean whitelist, List<String> entries) {
+        if (whitelist) {
+            EnhanceConfig.MOB_ITEM_WHITELIST.set(entries);
+        } else {
+            EnhanceConfig.MOB_ITEM_BLACKLIST.set(entries);
+        }
+        EnhanceConfig.SPEC.save();
+    }
+
+    private static int itemFilterMutate(CommandSourceStack source, boolean whitelist, boolean add, String pattern) {
+        ServerPlayer player = source.getPlayer();
+        if (player == null) {
+            source.sendFailure(Component.translatable("dnfenhance.command.itemFilter.onlyPlayer"));
+            return 0;
+        }
+        List<String> entries = itemFilterEntries(whitelist);
+        if (add) {
+            String entry;
+            if (pattern == null) {
+                ItemStack stack = player.getMainHandItem();
+                if (stack.isEmpty()) {
+                    source.sendFailure(Component.translatable("dnfenhance.command.itemFilter.needItem"));
+                    return 0;
+                }
+                ResourceLocation loc = BuiltInRegistries.ITEM.getKey(stack.getItem());
+                if (loc == null) {
+                    source.sendFailure(Component.translatable("dnfenhance.command.itemFilter.needItem"));
+                    return 0;
+                }
+                entry = loc.toString();
+                for (String existing : entries) {
+                    if (EnhanceLogic.itemEntryMatches(existing, stack)) {
+                        source.sendFailure(Component.translatable(
+                                "dnfenhance.command.itemFilter.coveredBy", entry, existing));
+                        return 0;
+                    }
+                }
+            } else {
+                if (!EnhanceLogic.isValidItemEntry(pattern)) {
+                    source.sendFailure(Component.translatable(
+                            "dnfenhance.command.itemFilter.invalidPattern", pattern));
+                    return 0;
+                }
+                entry = pattern.trim().toLowerCase(Locale.ROOT);
+            }
+            if (entries.contains(entry)) {
+                String finalEntry = entry;
+                source.sendFailure(Component.translatable(
+                        "dnfenhance.command.itemFilter.already", finalEntry, listName(whitelist)));
+                return 0;
+            }
+            entries.add(entry);
+            saveItemFilter(whitelist, entries);
+            String added = entry;
+            source.sendSuccess(() -> Component.translatable(
+                    "dnfenhance.command.itemFilter.added", added, listName(whitelist)), true);
+            return Command.SINGLE_SUCCESS;
+        }
+
+        List<String> removed = new ArrayList<>();
+        if (pattern == null) {
+            ItemStack stack = player.getMainHandItem();
+            if (stack.isEmpty()) {
+                source.sendFailure(Component.translatable("dnfenhance.command.itemFilter.needItem"));
+                return 0;
+            }
+            for (String existing : entries) {
+                if (EnhanceLogic.itemEntryMatches(existing, stack)) removed.add(existing);
+            }
+            if (removed.isEmpty()) {
+                source.sendFailure(Component.translatable("dnfenhance.command.itemFilter.noMatch"));
+                return 0;
+            }
+            entries.removeAll(removed);
+        } else {
+            String entry = pattern.trim().toLowerCase(Locale.ROOT);
+            if (!entries.remove(entry)) {
+                source.sendFailure(Component.translatable(
+                        "dnfenhance.command.itemFilter.notFound", entry, listName(whitelist)));
+                return 0;
+            }
+            removed.add(entry);
+        }
+        saveItemFilter(whitelist, entries);
+        for (String removedEntry : removed) {
+            source.sendSuccess(() -> Component.translatable(
+                    "dnfenhance.command.itemFilter.removed", removedEntry, listName(whitelist)), true);
+        }
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int itemFilterList(CommandSourceStack source, boolean whitelist) {
+        List<String> entries = itemFilterEntries(whitelist);
+        Component mode = Component.translatable("dnfenhance.command.itemFilter.mode."
+                + EnhanceLogic.itemFilterMode().name().toLowerCase(Locale.ROOT))
+                .withStyle(ChatFormatting.GOLD);
+        source.sendSuccess(() -> mode, false);
+        Component name = listName(whitelist);
+        if (entries.isEmpty()) {
+            source.sendSuccess(() -> Component.translatable("dnfenhance.command.itemFilter.empty", name)
+                    .withStyle(ChatFormatting.GRAY), false);
+            return Command.SINGLE_SUCCESS;
+        }
+        source.sendSuccess(() -> Component.translatable("dnfenhance.command.itemFilter.header", name)
                 .withStyle(ChatFormatting.GOLD), false);
         for (String entry : entries) {
             source.sendSuccess(() -> Component.literal(entry).withStyle(Style.EMPTY

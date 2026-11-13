@@ -33,7 +33,10 @@ public final class EnhanceConfig {
     public static final ModConfigSpec.IntValue PITY_MIN_LEVEL;
     public static final ModConfigSpec.DoubleValue MOB_GEAR_CHANCE;
     public static final ModConfigSpec.ConfigValue<List<? extends String>> MOB_GEAR_BLACKLIST;
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> MOB_ITEM_BLACKLIST;
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> MOB_ITEM_WHITELIST;
     public static final ModConfigSpec.DoubleValue CARBON_DROP_CHANCE;
+    public static final ModConfigSpec.BooleanValue MOB_ENHANCED_GEAR_DROP;
     public static final ModConfigSpec.BooleanValue PROTECTION_CONSUME;
 
     public static final ModConfigSpec.EnumValue<NamePosition> LEVEL_NAME_POSITION;
@@ -188,10 +191,52 @@ public final class EnhanceConfig {
 
         builder.comment(" ");
 
+        MOB_ITEM_BLACKLIST = builder
+                .comment("怪物装备物品黑名单",
+                        "Mob gear item blacklist",
+                        "命中任一条目的物品：怪物生成时自带装备不会被强化，也不会被作为随机装备发放给怪物；怪物死亡后装备照常掉落。",
+                        "Items matching any entry are never enhanced on newly spawned mobs and never given as random mob gear; mobs still drop them on death as usual.",
+                        "条目格式：完整物品 ID（minecraft:diamond_sword）、带命名空间的路径通配（minecraft:diamond*）、仅 minecraft 下的路径通配（diamond*）、命名空间通配（*:_sword，*:* 匹配全部物品）。",
+                        "Entry formats: full item id (minecraft:diamond_sword), namespaced path wildcard (minecraft:diamond*), bare minecraft path wildcard (diamond*), namespace wildcard (*:_sword, or *:* for every item).",
+                        "不带冒号的条目必须以 * 结尾，否则视为无效；禁用整个 minecraft 的装备请写 minecraft*。",
+                        "Entries without a colon must end with '*', otherwise they are ignored; use minecraft* to disable the whole minecraft mod.",
+                        "黑名单与白名单同时非空时，物品过滤整体停用。手持装备用 /dnfenhance itemBlacklist add|remove 快速增删，/dnfenhance itemBlacklist list 查看名单与当前模式。",
+                        "When both lists are non-empty the item filter is disabled entirely. Hold the gear and use /dnfenhance itemBlacklist add|remove, or /dnfenhance itemBlacklist list to view entries and the current mode.",
+                        "Default: [diamond*, netherite*] / 默认：[diamond*, netherite*]")
+                .defineListAllowEmpty("mobItemBlacklist",
+                        List.of("diamond*", "netherite*"),
+                        o -> o instanceof String);
+
+        builder.comment(" ");
+
+        MOB_ITEM_WHITELIST = builder
+                .comment("怪物装备物品白名单",
+                        "Mob gear item whitelist",
+                        "非空时启用白名单模式：只有命中条目的物品才会被强化或发放给怪物，其余物品一律不动；条目格式与黑名单相同。",
+                        "When non-empty, whitelist mode activates: only items matching an entry are enhanced or given as mob gear, everything else is left alone; same entry formats as the blacklist.",
+                        "与黑名单同时非空时，物品过滤整体停用。手持装备用 /dnfenhance itemWhitelist add|remove 快速增删，/dnfenhance itemWhitelist list 查看名单与当前模式。",
+                        "Disabled entirely when the blacklist is also non-empty. Hold the gear and use /dnfenhance itemWhitelist add|remove, or /dnfenhance itemWhitelist list to view entries and the current mode.",
+                        "Default: [] / 默认：[]")
+                .defineListAllowEmpty("mobItemWhitelist",
+                        List.of(),
+                        o -> o instanceof String);
+
+        builder.comment(" ");
+
         CARBON_DROP_CHANCE = builder
                 .comment("携带强化装备的敌对生物死亡后掉落炉岩碳的基础概率（1~3 个），抢夺附魔每级额外 +5%。",
                         "Base chance for a killed hostile mob that carried enhanced gear to drop 1-3 furnace carbon. Looting adds +5% per level.")
                 .defineInRange("carbonDropChance", 0.20, 0.0, 1.0);
+
+        builder.comment(" ");
+
+        MOB_ENHANCED_GEAR_DROP = builder
+                .comment("怪物强化装备死亡掉落开关",
+                        "Mob enhanced gear death drop toggle",
+                        "false = 敌对生物死亡时不掉落身上的强化装备（装备直接消失），未强化装备与炉岩碳掉落不受影响。",
+                        "false = killed hostile mobs no longer drop the enhanced gear they carry (it vanishes instead); unenhanced gear and furnace carbon drops are unaffected.",
+                        "Default: true / 默认：true")
+                .define("mobEnhancedGearDrop", true);
 
         builder.comment(" ");
 
