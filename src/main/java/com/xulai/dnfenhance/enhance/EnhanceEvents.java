@@ -141,7 +141,7 @@ public final class EnhanceEvents {
     private static int randomMobEnhanceLevel(RandomSource random) {
         int max = Math.min(15, EnhanceLogic.maxLevel());
         if (max <= 10) return 1 + random.nextInt(max);
-        if (random.nextFloat() < 0.8f) return 1 + random.nextInt(10);
+        if (random.nextFloat() < 0.9f) return 1 + random.nextInt(10);
         return 11 + random.nextInt(max - 10);
     }
 
