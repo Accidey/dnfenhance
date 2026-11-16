@@ -297,6 +297,7 @@ public final class EnhanceLogic {
     public static void applyLevel(ItemStack stack, int level) {
         if (level <= 0) {
             stack.remove(ModDataComponents.ENHANCE_LEVEL.get());
+            stack.remove(ModDataComponents.ENHANCE_NAME_ITEM.get());
             stack.remove(DataComponents.ENCHANTMENT_GLINT_OVERRIDE);
             stack.remove(DataComponents.RARITY);
             Component customName = stack.get(DataComponents.CUSTOM_NAME);
@@ -324,6 +325,28 @@ public final class EnhanceLogic {
         stack.set(DataComponents.CUSTOM_NAME, buildDisplayName(level, baseName));
 
         stack.remove(DataComponents.RARITY);
+
+        String id = itemId(stack);
+        if (id != null) stack.set(ModDataComponents.ENHANCE_NAME_ITEM.get(), id);
+    }
+
+    private static String itemId(ItemStack stack) {
+        return BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+    }
+
+    public static void repairDisplayName(ItemStack stack) {
+        int level = getLevel(stack);
+        if (level <= 0) return;
+        String current = itemId(stack);
+        if (current.isEmpty()) return;
+        String baked = stack.get(ModDataComponents.ENHANCE_NAME_ITEM.get());
+        if (baked == null || baked.isEmpty()) {
+            stack.set(ModDataComponents.ENHANCE_NAME_ITEM.get(), current);
+            return;
+        }
+        if (current.equals(baked)) return;
+        stack.remove(DataComponents.CUSTOM_NAME);
+        applyLevel(stack, level);
     }
 
     public static Style baseNameStyle() {

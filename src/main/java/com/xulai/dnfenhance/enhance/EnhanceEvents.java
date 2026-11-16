@@ -5,6 +5,7 @@ import com.xulai.dnfenhance.registry.ModItems;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Entity;
@@ -270,6 +271,19 @@ public final class EnhanceEvents {
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
         KaiLiPigHelper.tickMasters(event.getServer());
+        if (++nameRepairTimer < 20) return;
+        nameRepairTimer = 0;
+        for (ServerPlayer player : event.getServer().getPlayerList().getPlayers()) {
+            repairInventory(player);
+        }
+    }
+
+    private static int nameRepairTimer;
+
+    private static void repairInventory(Player player) {
+        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+            EnhanceLogic.repairDisplayName(player.getInventory().getItem(i));
+        }
     }
 
     @SubscribeEvent
