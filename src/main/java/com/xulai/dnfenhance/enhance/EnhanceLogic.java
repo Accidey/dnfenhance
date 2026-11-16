@@ -2,6 +2,7 @@ package com.xulai.dnfenhance.enhance;
 
 import com.xulai.dnfenhance.DnfEnhanceMod;
 import net.minecraft.ChatFormatting;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
@@ -31,6 +32,7 @@ public final class EnhanceLogic {
     private static final Pattern DOWN_PATTERN = Pattern.compile("DOWN_(\\d+)");
 
     public static final String NBT_LEVEL = "dnfenhance_level";
+    public static final String NBT_NAME_ITEM = "dnfenhance_name_item";
 
     public static int getLevel(ItemStack stack) {
         if (stack.isEmpty() || !stack.hasTag()) return 0;
@@ -297,12 +299,16 @@ public final class EnhanceLogic {
 
     public static void applyLevel(ItemStack stack, int level) {
         if (level <= 0) {
-            if (stack.hasTag()) stack.removeTagKey(NBT_LEVEL);
+            if (stack.hasTag()) {
+                stack.removeTagKey(NBT_LEVEL);
+                stack.removeTagKey(NBT_NAME_ITEM);
+            }
             if (stack.hasCustomHoverName()) {
                 String stripped = stripLevelMarker(stack.getHoverName().getString());
                 String defaultName = stack.getItem().getName(stack).getString();
                 if (stripped.isEmpty() || stripped.equals(defaultName)) {
-                    stack.removeTagKey("display.Name");
+                    CompoundTag display = stack.getTagElement("display");
+                    if (display != null) display.remove("Name");
                 } else {
                     stack.setHoverName(Component.literal(stripped));
                 }
@@ -319,6 +325,30 @@ public final class EnhanceLogic {
             baseName = stack.getItem().getName(stack).getString();
         }
         stack.setHoverName(buildDisplayName(level, baseName));
+
+        String id = itemId(stack);
+        if (id != null) stack.getOrCreateTag().putString(NBT_NAME_ITEM, id);
+    }
+
+    private static String itemId(ItemStack stack) {
+        ResourceLocation id = ForgeRegistries.ITEMS.getKey(stack.getItem());
+        return id == null ? null : id.toString();
+    }
+
+    public static void repairDisplayName(ItemStack stack) {
+        int level = getLevel(stack);
+        if (level <= 0 || !stack.hasTag()) return;
+        String current = itemId(stack);
+        if (current == null) return;
+        String baked = stack.getTag().getString(NBT_NAME_ITEM);
+        if (baked.isEmpty()) {
+            stack.getOrCreateTag().putString(NBT_NAME_ITEM, current);
+            return;
+        }
+        if (current.equals(baked)) return;
+        CompoundTag display = stack.getTagElement("display");
+        if (display != null) display.remove("Name");
+        applyLevel(stack, level);
     }
 
     public static Style baseNameStyle() {
