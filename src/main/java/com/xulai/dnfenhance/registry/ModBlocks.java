@@ -25,6 +25,7 @@ public final class ModBlocks {
                             .sound(SoundType.ANVIL)
                             .strength(5.0f, 1200.0f)
                             .requiresCorrectToolForDrops()
+                            .noOcclusion()
                             .lightLevel(state -> state.getValue(EnhancementFurnaceBlock.LIT) ? 13 : 0)));
 
     public static final RegistryObject<DecomposerBlock> DECOMPOSER =
@@ -34,6 +35,7 @@ public final class ModBlocks {
                             .sound(SoundType.METAL)
                             .strength(5.0f, 1200.0f)
                             .requiresCorrectToolForDrops()
+                            .noOcclusion()
                             .lightLevel(state -> state.getValue(DecomposerBlock.LIT) ? 13 : 0)));
 
     public static void register(IEventBus modEventBus) {
