@@ -1,8 +1,776 @@
 {
-  "parent": "minecraft:block/orientable",
+  "__comment": "DNF 强化机 — 由 tools/furnace_build.js 生成，修改几何请改脚本或用 Blockbench 调整后同步",
+  "parent": "minecraft:block/block",
   "textures": {
-    "top": "dnfenhance:block/enhancement_furnace_top",
-    "front": "dnfenhance:block/enhancement_furnace_front",
-    "side": "dnfenhance:block/enhancement_furnace_side"
-  }
+    "body": "dnfenhance:block/enhancement_furnace_body",
+    "body_back": "dnfenhance:block/enhancement_furnace_body_back",
+    "base": "dnfenhance:block/enhancement_furnace_base",
+    "frame": "dnfenhance:block/enhancement_furnace_frame",
+    "hazard": "dnfenhance:block/enhancement_furnace_hazard",
+    "grille": "dnfenhance:block/enhancement_furnace_grille",
+    "chimney": "dnfenhance:block/enhancement_furnace_chimney",
+    "mouth": "dnfenhance:block/enhancement_furnace_mouth_off",
+    "particle": "dnfenhance:block/enhancement_furnace_body"
+  },
+  "elements": [
+    {
+      "name": "底座",
+      "from": [
+        1,
+        0,
+        1
+      ],
+      "to": [
+        15,
+        2,
+        15
+      ],
+      "faces": {
+        "up": {
+          "texture": "#base",
+          "uv": [
+            0,
+            0,
+            14,
+            14
+          ]
+        },
+        "down": {
+          "texture": "#base",
+          "uv": [
+            0,
+            0,
+            14,
+            14
+          ]
+        },
+        "north": {
+          "texture": "#base",
+          "uv": [
+            0,
+            14,
+            14,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#base",
+          "uv": [
+            0,
+            14,
+            14,
+            16
+          ]
+        },
+        "east": {
+          "texture": "#base",
+          "uv": [
+            0,
+            14,
+            14,
+            16
+          ]
+        },
+        "west": {
+          "texture": "#base",
+          "uv": [
+            0,
+            14,
+            14,
+            16
+          ]
+        }
+      }
+    },
+    {
+      "name": "机身",
+      "from": [
+        2,
+        2,
+        2
+      ],
+      "to": [
+        14,
+        12,
+        14
+      ],
+      "faces": {
+        "north": {
+          "texture": "#body",
+          "uv": [
+            0,
+            0,
+            12,
+            10
+          ]
+        },
+        "south": {
+          "texture": "#body_back",
+          "uv": [
+            0,
+            0,
+            12,
+            10
+          ]
+        },
+        "east": {
+          "texture": "#body",
+          "uv": [
+            0,
+            0,
+            12,
+            10
+          ]
+        },
+        "west": {
+          "texture": "#body",
+          "uv": [
+            0,
+            0,
+            12,
+            10
+          ]
+        },
+        "up": {
+          "texture": "#body",
+          "uv": [
+            0,
+            4,
+            12,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#body",
+          "uv": [
+            0,
+            4,
+            12,
+            16
+          ]
+        }
+      }
+    },
+    {
+      "name": "炉框·顶梁",
+      "from": [
+        3,
+        10,
+        0
+      ],
+      "to": [
+        13,
+        12,
+        2
+      ],
+      "faces": {
+        "north": {
+          "texture": "#frame",
+          "uv": [
+            0,
+            0,
+            10,
+            2
+          ]
+        },
+        "south": {
+          "texture": "#frame",
+          "uv": [
+            0,
+            0,
+            10,
+            2
+          ]
+        },
+        "east": {
+          "texture": "#frame",
+          "uv": [
+            2,
+            2,
+            4,
+            4
+          ]
+        },
+        "west": {
+          "texture": "#frame",
+          "uv": [
+            2,
+            2,
+            4,
+            4
+          ]
+        },
+        "up": {
+          "texture": "#frame",
+          "uv": [
+            0,
+            2,
+            10,
+            4
+          ]
+        },
+        "down": {
+          "texture": "#frame",
+          "uv": [
+            10,
+            0,
+            16,
+            2
+          ]
+        }
+      }
+    },
+    {
+      "name": "炉框·左柱",
+      "from": [
+        3,
+        4,
+        0
+      ],
+      "to": [
+        5,
+        10,
+        2
+      ],
+      "faces": {
+        "north": {
+          "texture": "#frame",
+          "uv": [
+            0,
+            4,
+            2,
+            10
+          ]
+        },
+        "south": {
+          "texture": "#frame",
+          "uv": [
+            0,
+            4,
+            2,
+            10
+          ]
+        },
+        "east": {
+          "texture": "#frame",
+          "uv": [
+            10,
+            4,
+            12,
+            10
+          ]
+        },
+        "west": {
+          "texture": "#frame",
+          "uv": [
+            0,
+            4,
+            2,
+            10
+          ]
+        },
+        "up": {
+          "texture": "#frame",
+          "uv": [
+            2,
+            2,
+            4,
+            4
+          ]
+        },
+        "down": {
+          "texture": "#frame",
+          "uv": [
+            2,
+            2,
+            4,
+            4
+          ]
+        }
+      }
+    },
+    {
+      "name": "炉框·右柱",
+      "from": [
+        11,
+        4,
+        0
+      ],
+      "to": [
+        13,
+        10,
+        2
+      ],
+      "faces": {
+        "north": {
+          "texture": "#frame",
+          "uv": [
+            0,
+            4,
+            2,
+            10
+          ]
+        },
+        "south": {
+          "texture": "#frame",
+          "uv": [
+            0,
+            4,
+            2,
+            10
+          ]
+        },
+        "east": {
+          "texture": "#frame",
+          "uv": [
+            0,
+            4,
+            2,
+            10
+          ]
+        },
+        "west": {
+          "texture": "#frame",
+          "uv": [
+            10,
+            4,
+            12,
+            10
+          ]
+        },
+        "up": {
+          "texture": "#frame",
+          "uv": [
+            2,
+            2,
+            4,
+            4
+          ]
+        },
+        "down": {
+          "texture": "#frame",
+          "uv": [
+            2,
+            2,
+            4,
+            4
+          ]
+        }
+      }
+    },
+    {
+      "name": "炉框·底梁",
+      "from": [
+        3,
+        3,
+        0
+      ],
+      "to": [
+        13,
+        4,
+        2
+      ],
+      "faces": {
+        "north": {
+          "texture": "#hazard",
+          "uv": [
+            0,
+            0,
+            10,
+            1
+          ]
+        },
+        "south": {
+          "texture": "#hazard",
+          "uv": [
+            0,
+            0,
+            10,
+            1
+          ]
+        },
+        "east": {
+          "texture": "#frame",
+          "uv": [
+            10,
+            0,
+            12,
+            1
+          ]
+        },
+        "west": {
+          "texture": "#frame",
+          "uv": [
+            10,
+            0,
+            12,
+            1
+          ]
+        },
+        "up": {
+          "texture": "#frame",
+          "uv": [
+            10,
+            0,
+            16,
+            2
+          ]
+        },
+        "down": {
+          "texture": "#frame",
+          "uv": [
+            10,
+            0,
+            16,
+            2
+          ]
+        }
+      }
+    },
+    {
+      "name": "炉口",
+      "from": [
+        5,
+        4,
+        1
+      ],
+      "to": [
+        11,
+        10,
+        2
+      ],
+      "faces": {
+        "north": {
+          "texture": "#mouth",
+          "uv": [
+            5,
+            5,
+            11,
+            11
+          ]
+        },
+        "south": {
+          "texture": "#frame",
+          "uv": [
+            10,
+            0,
+            14,
+            2
+          ]
+        },
+        "east": {
+          "texture": "#frame",
+          "uv": [
+            10,
+            0,
+            12,
+            6
+          ]
+        },
+        "west": {
+          "texture": "#frame",
+          "uv": [
+            10,
+            0,
+            12,
+            6
+          ]
+        },
+        "up": {
+          "texture": "#frame",
+          "uv": [
+            10,
+            0,
+            14,
+            2
+          ]
+        },
+        "down": {
+          "texture": "#frame",
+          "uv": [
+            10,
+            0,
+            14,
+            2
+          ]
+        }
+      }
+    },
+    {
+      "name": "顶部格栅",
+      "from": [
+        3,
+        12,
+        3
+      ],
+      "to": [
+        13,
+        13,
+        13
+      ],
+      "faces": {
+        "up": {
+          "texture": "#grille",
+          "uv": [
+            0,
+            0,
+            10,
+            10
+          ]
+        },
+        "down": {
+          "texture": "#frame",
+          "uv": [
+            10,
+            0,
+            16,
+            2
+          ]
+        },
+        "north": {
+          "texture": "#grille",
+          "uv": [
+            0,
+            15,
+            10,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#grille",
+          "uv": [
+            0,
+            15,
+            10,
+            16
+          ]
+        },
+        "east": {
+          "texture": "#grille",
+          "uv": [
+            0,
+            15,
+            10,
+            16
+          ]
+        },
+        "west": {
+          "texture": "#grille",
+          "uv": [
+            0,
+            15,
+            10,
+            16
+          ]
+        }
+      }
+    },
+    {
+      "name": "排烟管",
+      "from": [
+        6,
+        13,
+        6
+      ],
+      "to": [
+        10,
+        15,
+        10
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chimney",
+          "uv": [
+            0,
+            0,
+            4,
+            2
+          ]
+        },
+        "south": {
+          "texture": "#chimney",
+          "uv": [
+            0,
+            0,
+            4,
+            2
+          ]
+        },
+        "east": {
+          "texture": "#chimney",
+          "uv": [
+            0,
+            0,
+            4,
+            2
+          ]
+        },
+        "west": {
+          "texture": "#chimney",
+          "uv": [
+            0,
+            0,
+            4,
+            2
+          ]
+        },
+        "up": {
+          "texture": "#chimney",
+          "uv": [
+            0,
+            0,
+            4,
+            4
+          ]
+        },
+        "down": {
+          "texture": "#chimney",
+          "uv": [
+            0,
+            0,
+            4,
+            4
+          ]
+        }
+      }
+    },
+    {
+      "name": "排烟管盖",
+      "from": [
+        5,
+        15,
+        5
+      ],
+      "to": [
+        11,
+        16,
+        11
+      ],
+      "faces": {
+        "up": {
+          "texture": "#chimney",
+          "uv": [
+            0,
+            8,
+            6,
+            14
+          ]
+        },
+        "north": {
+          "texture": "#chimney",
+          "uv": [
+            0,
+            6,
+            6,
+            7
+          ]
+        },
+        "south": {
+          "texture": "#chimney",
+          "uv": [
+            0,
+            6,
+            6,
+            7
+          ]
+        },
+        "east": {
+          "texture": "#chimney",
+          "uv": [
+            0,
+            6,
+            6,
+            7
+          ]
+        },
+        "west": {
+          "texture": "#chimney",
+          "uv": [
+            0,
+            6,
+            6,
+            7
+          ]
+        },
+        "down": {
+          "texture": "#chimney",
+          "uv": [
+            0,
+            0,
+            4,
+            4
+          ]
+        }
+      }
+    },
+    {
+      "name": "状态指示灯",
+      "from": [
+        7,
+        12,
+        0
+      ],
+      "to": [
+        9,
+        13,
+        3
+      ],
+      "faces": {
+        "north": {
+          "texture": "#mouth",
+          "uv": [
+            1,
+            1,
+            3,
+            2
+          ]
+        },
+        "south": {
+          "texture": "#frame",
+          "uv": [
+            8,
+            2,
+            10,
+            3
+          ]
+        },
+        "east": {
+          "texture": "#frame",
+          "uv": [
+            0,
+            2,
+            3,
+            3
+          ]
+        },
+        "west": {
+          "texture": "#frame",
+          "uv": [
+            3,
+            2,
+            6,
+            3
+          ]
+        },
+        "up": {
+          "texture": "#frame",
+          "uv": [
+            6,
+            2,
+            8,
+            5
+          ]
+        },
+        "down": {
+          "texture": "#frame",
+          "uv": [
+            6,
+            2,
+            8,
+            5
+          ]
+        }
+      }
+    }
+  ]
 }

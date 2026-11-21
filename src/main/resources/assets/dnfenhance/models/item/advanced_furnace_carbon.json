@@ -1,6 +1,6 @@
 {
-  "parent": "minecraft:item/generated",
+  "parent": "dnfenhance:item/furnace_carbon",
   "textures": {
-    "layer0": "dnfenhance:item/advanced_furnace_carbon"
+    "crystal": "dnfenhance:item/furnace_carbon_crystal_gold"
   }
 }
